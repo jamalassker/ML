@@ -53,7 +53,7 @@ TG_TOKEN = os.getenv("TG_TOKEN", "8560134874:AAHF4efOAdsg2Y01eBHF-2DzEUNf9WAdniA
 TG_CHAT_ID = os.getenv("TG_CHAT_ID", "5665906172")
 
 # ═══════════════ SCALPING SETTINGS ═══════════════
-INITIAL_CAPITAL = 10.0      # Starting USDT
+INITIAL_CAPITAL = 100.0      # Starting USDT
 SYMBOLS_TO_MONITOR = 100    # Monitor top 100 coins
 MAX_POSITIONS = 30          # Many concurrent positions for scalping
 POSITION_SIZE_PCT = 0.03    # 3% of capital per trade
