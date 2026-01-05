@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Binance Micro Scalper - High-Frequency Trading Bot
+Binance Micro Scalper - High-Frequency Trading Bot (FIXED VERSION)
 
 Features:
 - Monitors 100 coins simultaneously
@@ -9,8 +9,10 @@ Features:
 - Multiple concurrent positions
 - Real-time Telegram notifications
 
-RISK WARNING: Scalping involves high frequency trading with significant risk.
-Never invest more than you can afford to lose.
+FIXES APPLIED:
+1. Data collection now happens BEFORE warm-up checks
+2. Added active warm-up phase that collects initial data
+3. Separated data collection from trading decision logic
 
 Install:
 pip install python-binance aiohttp numpy pandas
@@ -24,11 +26,10 @@ import asyncio
 import math
 import time
 import logging
-import datetime
+import random
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Tuple
-from enum import Enum
 
 import aiohttp
 import numpy as np
@@ -74,7 +75,7 @@ MAX_DAILY_LOSS_PCT = 0.15  # Stop if down 15%
 MAX_HOURLY_TRADES = 100  # Max trades per hour
 MAX_SPREAD_PCT = 0.002  # Max 0.2% spread
 
-# Warm-up thresholds (CRITICAL FIX)
+# Warm-up thresholds
 MIN_WARMUP_PRICES = 25  # Need at least 25 prices
 MIN_WARMUP_TRADES = 30  # Need at least 30 trades
 
@@ -85,8 +86,8 @@ OBI_STRONG_BUY = 0.15  # Strong buy signal
 OBI_BUY = 0.08  # Normal buy signal
 OBI_DEPTH = 10  # Order book depth
 
-# VWAP (FIXED - more realistic for scalping)
-VWAP_DEVIATION_BUY = -0.0007  # FIXED: Buy when price 0.07% below VWAP (was -0.002)
+# VWAP
+VWAP_DEVIATION_BUY = -0.0007  # Buy when price 0.07% below VWAP
 VWAP_DEVIATION_SELL = 0.003  # Sell when price 0.3% above VWAP
 
 # Z-Score
@@ -98,8 +99,8 @@ ZSCORE_LOOKBACK = 20  # Periods for Z-score
 VOLUME_SURGE_MULT = 2.0  # Volume must be 2x average
 VOLUME_LOOKBACK = 20  # Periods for volume average
 
-# Combined Score (FIXED - more reachable)
-MIN_ENTRY_SCORE = 2.5  # FIXED: Minimum score to enter (was 3.0)
+# Combined Score
+MIN_ENTRY_SCORE = 2.5  # Minimum score to enter
 MIN_EXIT_SCORE = -2.0  # Score to trigger exit
 
 # =============================================================================
@@ -161,17 +162,17 @@ class State:
         self.positions: Dict[str, Position] = {}
         self.filters: Dict[str, dict] = {}
         self.last_trade: Dict[str, float] = {}
-        
+
         # Price/Volume history for each symbol
         self.prices: Dict[str, deque] = defaultdict(lambda: deque(maxlen=100))
         self.volumes: Dict[str, deque] = defaultdict(lambda: deque(maxlen=100))
         self.trades_data: Dict[str, deque] = defaultdict(lambda: deque(maxlen=500))
-        
+
         # Balances
         self.balance: float = INITIAL_CAPITAL
         self.paper_balance: float = INITIAL_CAPITAL
         self.start_balance: float = INITIAL_CAPITAL
-        
+
         # Stats
         self.stats = Stats(last_hour_reset=time.time())
         self.running = True
@@ -246,8 +247,7 @@ def calc_obi(bids: List, asks: List, depth: int = OBI_DEPTH) -> float:
     """Order Book Imbalance: (bid_vol - ask_vol) / (bid_vol + ask_vol)"""
     if not bids or not asks:
         return 0.0
-    
-    # Weighted by distance from mid (closer = higher weight)
+
     bid_vol = sum(float(b[1]) / (i + 1) for i, b in enumerate(bids[:depth]))
     ask_vol = sum(float(a[1]) / (i + 1) for i, a in enumerate(asks[:depth]))
     total = bid_vol + ask_vol
@@ -259,7 +259,7 @@ def calc_vwap(trades: deque) -> Tuple[float, float]:
     """Calculate VWAP and current deviation from it."""
     if len(trades) < 10:
         return 0.0, 0.0
-    
+
     recent = list(trades)[-100:]
     total_pv = sum(t['p'] * t['q'] for t in recent)
     total_v = sum(t['q'] for t in recent)
@@ -274,7 +274,7 @@ def calc_zscore(prices: deque, lookback: int = ZSCORE_LOOKBACK) -> float:
     """Z-Score: (price - mean) / std"""
     if len(prices) < lookback:
         return 0.0
-    
+
     recent = list(prices)[-lookback:]
     mean = np.mean(recent)
     std = np.std(recent)
@@ -287,7 +287,7 @@ def calc_volume_ratio(volumes: deque, lookback: int = VOLUME_LOOKBACK) -> float:
     """Current volume / average volume."""
     if len(volumes) < lookback:
         return 1.0
-    
+
     recent = list(volumes)[-lookback:]
     avg = np.mean(recent[:-1]) if len(recent) > 1 else recent[0]
     current = recent[-1]
@@ -299,12 +299,12 @@ def calc_trade_flow(trades: deque, window: int = 30) -> float:
     """Net trade flow: buy volume - sell volume."""
     if len(trades) < 5:
         return 0.0
-    
+
     now = time.time()
     recent = [t for t in trades if now - t.get('time', now) < window]
     if not recent:
         return 0.0
-    
+
     buy_vol = sum(t['q'] for t in recent if not t.get('m', False))
     sell_vol = sum(t['q'] for t in recent if t.get('m', False))
     total = buy_vol + sell_vol
@@ -315,7 +315,7 @@ def calc_trade_flow(trades: deque, window: int = 30) -> float:
 def calc_entry_score(obi: float, vwap_dev: float, zscore: float, vol_ratio: float, trade_flow: float) -> float:
     """Calculate combined entry score."""
     score = 0.0
-    
+
     # OBI Score (0-3 points)
     if obi >= OBI_STRONG_BUY:
         score += 3.0
@@ -323,31 +323,31 @@ def calc_entry_score(obi: float, vwap_dev: float, zscore: float, vol_ratio: floa
         score += 2.0
     elif obi >= OBI_BUY * 0.5:
         score += 1.0
-    
+
     # VWAP Score (0-2 points) - buy below VWAP
     if vwap_dev <= VWAP_DEVIATION_BUY:
         score += 2.0
     elif vwap_dev <= 0:
         score += 1.0
-    
+
     # Z-Score (0-2 points) - buy when oversold
     if zscore <= ZSCORE_BUY:
         score += 2.0
     elif zscore <= ZSCORE_BUY * 0.5:
         score += 1.0
-    
+
     # Volume confirmation (0-2 points)
     if vol_ratio >= VOLUME_SURGE_MULT:
         score += 2.0
     elif vol_ratio >= VOLUME_SURGE_MULT * 0.7:
         score += 1.0
-    
+
     # Trade flow bonus (0-1 point)
     if trade_flow > 0.2:
         score += 1.0
     elif trade_flow > 0.1:
         score += 0.5
-    
+
     return score
 
 # =============================================================================
@@ -358,7 +358,7 @@ async def get_top_symbols(client: AsyncClient) -> List[str]:
     """Get top 100 volume USDT pairs."""
     try:
         tickers = await client.get_ticker()
-        
+
         usdt = [
             t for t in tickers
             if t['symbol'].endswith('USDT')
@@ -366,7 +366,7 @@ async def get_top_symbols(client: AsyncClient) -> List[str]:
             and 'DOWN' not in t['symbol']
             and 'BEAR' not in t['symbol']
             and 'BULL' not in t['symbol']
-            and float(t.get('quoteVolume', 0)) > 1000000  # Min $1M volume
+            and float(t.get('quoteVolume', 0)) > 1000000
         ]
         usdt.sort(key=lambda x: float(x.get('quoteVolume', 0)), reverse=True)
         return [t['symbol'] for t in usdt[:SYMBOLS_TO_MONITOR]]
@@ -378,7 +378,7 @@ async def setup_filters(client: AsyncClient, symbols: List[str]):
     """Load trading rules."""
     try:
         info = await client.get_exchange_info()
-        
+
         for s in info['symbols']:
             if s['symbol'] not in symbols:
                 continue
@@ -395,10 +395,10 @@ async def fetch_orderbook(client: AsyncClient, symbol: str) -> Tuple[List, List,
     """Fetch order book and calculate spread."""
     try:
         ob = await client.get_order_book(symbol=symbol, limit=OBI_DEPTH)
-        
+
         if not ob['bids'] or not ob['asks']:
             return [], [], 0, 0, 1.0
-        
+
         bids = ob['bids']
         asks = ob['asks']
         best_bid = float(bids[0][0])
@@ -413,7 +413,7 @@ async def fetch_recent_trades(client: AsyncClient, symbol: str):
     """Fetch recent trades for VWAP calculation."""
     try:
         trades = await client.get_recent_trades(symbol=symbol, limit=100)
-        
+
         now = time.time()
         for t in trades:
             state.trades_data[symbol].append({
@@ -425,34 +425,93 @@ async def fetch_recent_trades(client: AsyncClient, symbol: str):
     except Exception:
         pass
 
+# =============================================================================
+# NEW: DATA COLLECTION FUNCTION (FIXED)
+# =============================================================================
+
+async def collect_symbol_data(client: AsyncClient, symbol: str) -> bool:
+    """Collect price and trade data for a symbol (no trading decision)."""
+    try:
+        # Fetch order book
+        bids, asks, bid, ask, spread = await fetch_orderbook(client, symbol)
+
+        if bid == 0 or ask == 0:
+            return False
+
+        mid = (bid + ask) / 2
+
+        # ALWAYS add price data
+        state.prices[symbol].append(mid)
+
+        # ALWAYS fetch trades
+        await fetch_recent_trades(client, symbol)
+
+        return True
+    except Exception as e:
+        logger.debug(f"Data collection failed for {symbol}: {e}")
+        return False
+
+# =============================================================================
+# NEW: WARM-UP FUNCTION (FIXED)
+# =============================================================================
+
+async def warmup_data_collection(client: AsyncClient, symbols: List[str]):
+    """Actively collect data during warm-up period."""
+    logger.info(f"📊 Collecting initial data for {len(symbols)} symbols...")
+
+    # Run multiple collection rounds to build up history
+    for round_num in range(5):
+        logger.info(f"   Warm-up round {round_num + 1}/5...")
+
+        # Process symbols in batches to avoid rate limits
+        batch_size = 20
+        for i in range(0, len(symbols), batch_size):
+            batch = symbols[i:i + batch_size]
+            tasks = [collect_symbol_data(client, sym) for sym in batch]
+            await asyncio.gather(*tasks, return_exceptions=True)
+            await asyncio.sleep(0.5)  # Rate limit protection
+
+        await asyncio.sleep(2)  # Brief pause between rounds
+
+    # Log warm-up statistics
+    symbols_with_prices = sum(1 for s in symbols if len(state.prices[s]) >= MIN_WARMUP_PRICES)
+    symbols_with_trades = sum(1 for s in symbols if len(state.trades_data[s]) >= MIN_WARMUP_TRADES)
+
+    logger.info(f"   Prices ready: {symbols_with_prices}/{len(symbols)}")
+    logger.info(f"   Trades ready: {symbols_with_trades}/{len(symbols)}")
+
+# =============================================================================
+# ANALYZE SYMBOL (FIXED)
+# =============================================================================
+
 async def analyze_symbol(client: AsyncClient, symbol: str) -> Optional[MarketData]:
     """Full analysis of a symbol."""
     try:
         # Fetch order book
         bids, asks, bid, ask, spread = await fetch_orderbook(client, symbol)
-        
+
         if spread > MAX_SPREAD_PCT or bid == 0:
             return None
-        
+
         mid = (bid + ask) / 2
-        
-        # ===== CRITICAL FIX 1: Warm-up protection =====
+
+        # ===== FIX: ALWAYS collect data FIRST =====
+        state.prices[symbol].append(mid)
+        await fetch_recent_trades(client, symbol)
+
+        # ===== THEN check if we have enough data =====
         if len(state.prices[symbol]) < MIN_WARMUP_PRICES:
+            logger.debug(f"{symbol}: Only {len(state.prices[symbol])}/{MIN_WARMUP_PRICES} prices")
             return None
         if len(state.trades_data[symbol]) < MIN_WARMUP_TRADES:
+            logger.debug(f"{symbol}: Only {len(state.trades_data[symbol])}/{MIN_WARMUP_TRADES} trades")
             return None
-        
-        # Update price history
-        state.prices[symbol].append(mid)
-        
-        # Fetch recent trades (for VWAP)
-        await fetch_recent_trades(client, symbol)
-        
+
         # Calculate indicators
         obi = calc_obi(bids, asks, OBI_DEPTH)
         vwap, vwap_dev = calc_vwap(state.trades_data[symbol])
         zscore = calc_zscore(state.prices[symbol], ZSCORE_LOOKBACK)
-        
+
         # Volume from trades
         recent_trades = list(state.trades_data[symbol])[-50:]
         if recent_trades:
@@ -461,13 +520,13 @@ async def analyze_symbol(client: AsyncClient, symbol: str) -> Optional[MarketDat
             vol_ratio = current_vol / avg_vol if avg_vol > 0 else 1.0
         else:
             vol_ratio = 1.0
-        
+
         # Trade flow
         trade_flow = calc_trade_flow(state.trades_data[symbol])
-        
+
         # Combined score
         score = calc_entry_score(obi, vwap_dev, zscore, vol_ratio, trade_flow)
-        
+
         return MarketData(
             price=mid,
             bid=bid,
@@ -493,34 +552,34 @@ async def open_position(client: AsyncClient, symbol: str, data: MarketData) -> b
     # Check limits
     if len(state.positions) >= MAX_POSITIONS:
         return False
-    
+
     if symbol in state.positions:
         return False
-    
+
     # Cooldown check
     if time.time() - state.last_trade.get(symbol, 0) < TRADE_COOLDOWN:
         return False
-    
+
     # Hourly trade limit
     if state.stats.hourly_trades >= MAX_HOURLY_TRADES:
         return False
-    
+
     # Calculate size
     balance = state.paper_balance if PAPER_MODE else state.balance
     trade_value = balance * POSITION_SIZE_PCT
     min_notional = state.filters.get(symbol, {}).get('min_notional', MIN_TRADE_VALUE)
-    
+
     if trade_value < max(min_notional, MIN_TRADE_VALUE):
         return False
-    
+
     qty = fmt_qty(symbol, trade_value / data.price)
     if qty <= 0:
         return False
-    
+
     actual_value = qty * data.price
     if actual_value > balance * 0.95:
         return False
-    
+
     try:
         if PAPER_MODE:
             entry_price = data.ask  # Simulate buying at ask
@@ -536,7 +595,7 @@ async def open_position(client: AsyncClient, symbol: str, data: MarketData) -> b
             fills = order.get('fills', [])
             entry_price = float(fills[0]['price']) if fills else data.ask
             logger.info(f"✅ BUY {symbol}: {qty:.6f} @ ${entry_price:.6f}")
-        
+
         # Create position
         pos = Position(
             symbol=symbol,
@@ -550,14 +609,14 @@ async def open_position(client: AsyncClient, symbol: str, data: MarketData) -> b
             obi=data.obi,
             zscore=data.zscore
         )
-        
+
         state.positions[symbol] = pos
         state.last_trade[symbol] = time.time()
         state.stats.hourly_trades += 1
-        
+
         await notify_entry(pos)
         return True
-        
+
     except Exception as e:
         logger.error(f"Failed to open {symbol}: {e}")
         return False
@@ -567,7 +626,7 @@ async def close_position(client: AsyncClient, symbol: str, current_price: float,
     pos = state.positions.get(symbol)
     if not pos:
         return False
-    
+
     try:
         if PAPER_MODE:
             exit_price = current_price * 0.9999  # Simulate selling at slightly lower
@@ -584,11 +643,11 @@ async def close_position(client: AsyncClient, symbol: str, current_price: float,
             fills = order.get('fills', [])
             exit_price = float(fills[0]['price']) if fills else current_price
             logger.info(f"✅ SELL {symbol}: {pos.quantity:.6f} @ ${exit_price:.6f}")
-        
+
         # Calculate PnL
         pnl = (exit_price - pos.entry_price) * pos.quantity
         pnl_pct = (exit_price / pos.entry_price - 1) * 100
-        
+
         # Update stats
         state.stats.trades += 1
         state.stats.total_pnl += pnl
@@ -596,17 +655,17 @@ async def close_position(client: AsyncClient, symbol: str, current_price: float,
             state.stats.wins += 1
         else:
             state.stats.losses += 1
-        
+
         # Update balance
         if PAPER_MODE:
             state.balance = state.paper_balance
-        
+
         # Remove position
         del state.positions[symbol]
-        
+
         await notify_exit(symbol, pos.entry_price, exit_price, pnl, pnl_pct, reason)
         return True
-        
+
     except Exception as e:
         logger.error(f"Failed to close {symbol}: {e}")
         return False
@@ -618,21 +677,21 @@ async def close_position(client: AsyncClient, symbol: str, current_price: float,
 async def manage_positions(client: AsyncClient, prices: Dict[str, float]):
     """Check all positions for exit conditions."""
     now = time.time()
-    
+
     for symbol, pos in list(state.positions.items()):
         price = prices.get(symbol)
         if not price:
             continue
-        
+
         # Update trailing stop
         if price > pos.highest_price:
             pos.highest_price = price
             new_sl = price * (1 - TRAILING_STOP_PCT)
             if new_sl > pos.stop_loss:
                 pos.stop_loss = fmt_price(symbol, new_sl)
-        
+
         exit_reason = None
-        
+
         # Stop loss
         if price <= pos.stop_loss:
             exit_reason = "SL"
@@ -647,7 +706,7 @@ async def manage_positions(client: AsyncClient, prices: Dict[str, float]):
         # Max hold time
         elif now - pos.entry_time > MAX_HOLD_TIME:
             pnl_pct = (price / pos.entry_price - 1) * 100
-            if pnl_pct > -0.1:  # Only exit if not in significant loss
+            if pnl_pct > -0.1:
                 exit_reason = "TIME"
         # Dynamic exit based on signals turning negative
         elif not exit_reason and len(state.prices[symbol]) > 20:
@@ -656,7 +715,7 @@ async def manage_positions(client: AsyncClient, prices: Dict[str, float]):
                 pnl_pct = (price / pos.entry_price - 1) * 100
                 if pnl_pct > 0:
                     exit_reason = "SIGNAL"
-        
+
         if exit_reason:
             await close_position(client, symbol, price, exit_reason)
 
@@ -672,64 +731,63 @@ async def scan_for_entries(client: AsyncClient, symbols: List[str]):
         prices = {t['symbol']: float(t['price']) for t in tickers}
     except:
         prices = {}
-    
+
     # Manage existing positions
     await manage_positions(client, prices)
-    
+
     # Check if we can open more positions
     if len(state.positions) >= MAX_POSITIONS:
         return
-    
+
     # Shuffle symbols to avoid always checking same ones first
-    import random
     check_symbols = random.sample(symbols, min(30, len(symbols)))
-    
+
     for symbol in check_symbols:
         if symbol in state.positions:
             continue
-        
+
         if len(state.positions) >= MAX_POSITIONS:
             break
-        
+
         data = await analyze_symbol(client, symbol)
-        
-        # ===== CRITICAL FIX 5: Debug logging =====
+
+        # Debug logging
         if data:
             logger.debug(f"{symbol} score={data.score:.2f} obi={data.obi:.3f} "
                         f"z={data.zscore:.2f} vwap_dev={data.vwap_dev:.4f}")
-        
+
         if data and data.score >= MIN_ENTRY_SCORE:
             logger.info(
                 f"🎯 {symbol}: Score={data.score:.1f} OBI={data.obi:.3f} "
                 f"Z={data.zscore:.2f} VWAP_dev={data.vwap_dev:.4f}"
             )
             await open_position(client, symbol, data)
-        
-        await asyncio.sleep(0.05)  # Small delay between checks
+
+        await asyncio.sleep(0.05)
 
 async def trading_loop(client: AsyncClient, symbols: List[str]):
     """Main scalping loop."""
     logger.info(f"🚀 Starting scalping loop with {len(symbols)} symbols")
-    
+
     iteration = 0
     last_stats_time = time.time()
-    
-    # Initial warm-up
-    logger.info("🔥 Warming up indicators... (30 seconds)")
-    await asyncio.sleep(30)
+
+    # ===== FIX: Active warm-up instead of just sleeping =====
+    logger.info("🔥 Warming up indicators...")
+    await warmup_data_collection(client, symbols)
     logger.info("✅ Warm-up complete, starting to scan...")
-    
+
     while state.running:
         try:
             iteration += 1
             now = time.time()
-            
-            # ===== CRITICAL FIX 4: Hourly trade counter reset =====
+
+            # Hourly trade counter reset
             if now - state.stats.last_hour_reset >= 3600:
                 state.stats.hourly_trades = 0
                 state.stats.last_hour_reset = now
                 await notify_stats()
-            
+
             # Check daily loss limit
             daily_pnl_pct = (state.balance - state.start_balance) / state.start_balance
             if daily_pnl_pct < -MAX_DAILY_LOSS_PCT:
@@ -737,10 +795,10 @@ async def trading_loop(client: AsyncClient, symbols: List[str]):
                     logger.warning(f"⚠️ Daily loss limit reached: {daily_pnl_pct*100:.2f}%")
                 await asyncio.sleep(60)
                 continue
-            
+
             # Scan for trades
             await scan_for_entries(client, symbols)
-            
+
             # Status update every 30 seconds
             if now - last_stats_time >= 30:
                 s = state.stats
@@ -751,9 +809,9 @@ async def trading_loop(client: AsyncClient, symbols: List[str]):
                     f"PnL: ${s.total_pnl:+.3f}"
                 )
                 last_stats_time = now
-            
+
             await asyncio.sleep(SCAN_INTERVAL)
-            
+
         except Exception as e:
             logger.exception(f"Loop error: {e}")
             await asyncio.sleep(1)
@@ -764,7 +822,7 @@ async def trading_loop(client: AsyncClient, symbols: List[str]):
 
 async def main():
     logger.info("=" * 70)
-    logger.info("⚡ BINANCE MICRO SCALPER")
+    logger.info("⚡ BINANCE MICRO SCALPER (FIXED VERSION)")
     logger.info("=" * 70)
     logger.info(f"Mode: {'PAPER TRADING' if PAPER_MODE else '🔴 LIVE TRADING'}")
     logger.info(f"Capital: ${INITIAL_CAPITAL:.2f}")
@@ -772,18 +830,18 @@ async def main():
     logger.info(f"TP: {TP_PERCENT*100:.2f}% | SL: {SL_PERCENT*100:.2f}%")
     logger.info(f"Entry Score Threshold: {MIN_ENTRY_SCORE}")
     logger.info("=" * 70)
-    
+
     if not PAPER_MODE and API_KEY == "YOUR_API_KEY_HERE":
         logger.error("❌ Set API keys for live trading!")
         return
-    
+
     try:
         client = await AsyncClient.create(
             api_key=API_KEY,
             api_secret=API_SECRET,
             testnet=USE_TESTNET
         )
-        
+
         # Get balance
         if not PAPER_MODE:
             acc = await client.get_account()
@@ -797,18 +855,18 @@ async def main():
             state.balance = INITIAL_CAPITAL
             state.paper_balance = INITIAL_CAPITAL
             state.start_balance = INITIAL_CAPITAL
-        
+
         # Get symbols
         symbols = await get_top_symbols(client)
         logger.info(f"📊 Monitoring: {symbols[:5]}... ({len(symbols)} total)")
-        
+
         # Setup filters
         await setup_filters(client, symbols)
         logger.info("✅ Filters loaded")
-        
+
         # Notify start
         await tg_send(
-            f"""⚡ <b>SCALPER STARTED</b>
+            f"""⚡ SCALPER STARTED (FIXED)
 
 Mode: {'Paper' if PAPER_MODE else 'Live'}
 Capital: ${state.balance:.2f}
@@ -816,19 +874,18 @@ Symbols: {len(symbols)}
 Max Positions: {MAX_POSITIONS}
 TP: {TP_PERCENT*100:.2f}% | SL: {SL_PERCENT*100:.2f}%"""
         )
-        
+
         # Start
         await trading_loop(client, symbols)
-        
+
     except KeyboardInterrupt:
         logger.info("⛔ Stopped")
     except Exception as e:
         logger.exception(f"Fatal: {e}")
     finally:
-        # Close all positions on shutdown (paper mode)
         if PAPER_MODE and state.positions:
             logger.info(f"Closing {len(state.positions)} positions...")
-        await tg_send(f"⛔ <b>SCALPER STOPPED</b>\nFinal PnL: ${state.stats.total_pnl:+.2f}")
+        await tg_send(f"⛔ SCALPER STOPPED\nFinal PnL: ${state.stats.total_pnl:+.2f}")
 
 if __name__ == "__main__":
     asyncio.run(main())
