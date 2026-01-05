@@ -28,7 +28,7 @@ import datetime
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import Optional, List, Dict, Tuple
-import random
+from enum import Enum
 
 import aiohttp
 import numpy as np
@@ -681,6 +681,7 @@ async def scan_for_entries(client: AsyncClient, symbols: List[str]):
         return
     
     # Shuffle symbols to avoid always checking same ones first
+    import random
     check_symbols = random.sample(symbols, min(30, len(symbols)))
     
     for symbol in check_symbols:
@@ -770,7 +771,6 @@ async def main():
     logger.info(f"Symbols: {SYMBOLS_TO_MONITOR} | Max Positions: {MAX_POSITIONS}")
     logger.info(f"TP: {TP_PERCENT*100:.2f}% | SL: {SL_PERCENT*100:.2f}%")
     logger.info(f"Entry Score Threshold: {MIN_ENTRY_SCORE}")
-    logger.info(f"VWAP Deviation Buy: {VWAP_DEVIATION_BUY*100:.4f}%")
     logger.info("=" * 70)
     
     if not PAPER_MODE and API_KEY == "YOUR_API_KEY_HERE":
