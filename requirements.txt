@@ -10,4 +10,4 @@ river
 nltk
 requests
 python-binance
-
+pandas_ta
