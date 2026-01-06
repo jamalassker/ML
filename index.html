@@ -1,0 +1,2312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CryptoMaster AI | Elite Trading Academy</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #101520;
+      --bg-tertiary: #161d2d;
+      --bg-card: #1a2235;
+      --accent-cyan: #00f5d4;
+      --accent-magenta: #f72585;
+      --accent-gold: #ffd700;
+      --accent-blue: #4cc9f0;
+      --accent-purple: #7b2cbf;
+      --text-primary: #ffffff;
+      --text-secondary: #a0aec0;
+      --text-muted: #64748b;
+      --border-color: rgba(0, 245, 212, 0.15);
+      --gradient-1: linear-gradient(135deg, #00f5d4 0%, #4cc9f0 50%, #7b2cbf 100%);
+      --gradient-2: linear-gradient(135deg, #f72585 0%, #7b2cbf 100%);
+      --gradient-gold: linear-gradient(135deg, #ffd700 0%, #ff8c00 100%);
+      --glow-cyan: 0 0 30px rgba(0, 245, 212, 0.3);
+      --glow-magenta: 0 0 30px rgba(247, 37, 133, 0.3);
+    }
+
+    .light {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #f1f5f9;
+      --bg-tertiary: #e2e8f0;
+      --bg-card: #ffffff;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --border-color: rgba(0, 245, 212, 0.25);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Rajdhani', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(ellipse at 20% 20%, rgba(0, 245, 212, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 80%, rgba(247, 37, 133, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse at 50% 50%, rgba(123, 44, 191, 0.05) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .grid-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-image: 
+        linear-gradient(rgba(0, 245, 212, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 245, 212, 0.03) 1px, transparent 1px);
+      background-size: 50px 50px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .app-container {
+      position: relative;
+      z-index: 1;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 30px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      margin-bottom: 30px;
+      backdrop-filter: blur(20px);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .logo-icon {
+      width: 50px;
+      height: 50px;
+      background: var(--gradient-1);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: var(--glow-cyan);
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: var(--glow-cyan); }
+      50% { box-shadow: 0 0 50px rgba(0, 245, 212, 0.5); }
+    }
+
+    .logo-text {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      background: var(--gradient-1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: 2px;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .sound-toggle, .theme-toggle {
+      width: 45px;
+      height: 45px;
+      border-radius: 12px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      transition: all 0.3s ease;
+    }
+
+    .sound-toggle:hover, .theme-toggle:hover {
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+      box-shadow: var(--glow-cyan);
+    }
+
+    .sound-toggle.active {
+      background: var(--gradient-1);
+      color: var(--bg-primary);
+      border: none;
+    }
+
+    .level-badge {
+      padding: 10px 20px;
+      background: var(--gradient-gold);
+      border-radius: 30px;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 700;
+      font-size: 12px;
+      color: #000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .main-content {
+      display: grid;
+      grid-template-columns: 280px 1fr 350px;
+      gap: 25px;
+    }
+
+    @media (max-width: 1200px) {
+      .main-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .sidebar {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 25px;
+      height: fit-content;
+    }
+
+    .sidebar-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      color: var(--accent-cyan);
+      margin-bottom: 20px;
+      letter-spacing: 2px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .module-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .module-item {
+      padding: 15px;
+      background: var(--bg-tertiary);
+      border: 1px solid transparent;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .module-item:hover {
+      border-color: var(--accent-cyan);
+      transform: translateX(5px);
+    }
+
+    .module-item.active {
+      background: linear-gradient(135deg, rgba(0, 245, 212, 0.15) 0%, rgba(123, 44, 191, 0.15) 100%);
+      border-color: var(--accent-cyan);
+      box-shadow: var(--glow-cyan);
+    }
+
+    .module-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .module-item:nth-child(1) .module-icon { background: linear-gradient(135deg, #00f5d4, #4cc9f0); color: #000; }
+    .module-item:nth-child(2) .module-icon { background: linear-gradient(135deg, #f72585, #7b2cbf); color: #fff; }
+    .module-item:nth-child(3) .module-icon { background: linear-gradient(135deg, #ffd700, #ff8c00); color: #000; }
+    .module-item:nth-child(4) .module-icon { background: linear-gradient(135deg, #4cc9f0, #7b2cbf); color: #fff; }
+    .module-item:nth-child(5) .module-icon { background: linear-gradient(135deg, #00f5d4, #f72585); color: #000; }
+    .module-item:nth-child(6) .module-icon { background: linear-gradient(135deg, #7b2cbf, #f72585); color: #fff; }
+
+    .module-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .module-name {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 3px;
+    }
+
+    .module-lessons {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .center-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 25px;
+    }
+
+    .lesson-display {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 30px;
+      min-height: 500px;
+    }
+
+    .lesson-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+
+    .lesson-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 28px;
+      font-weight: 700;
+      background: var(--gradient-1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .lesson-meta {
+      display: flex;
+      gap: 15px;
+    }
+
+    .meta-tag {
+      padding: 8px 16px;
+      background: var(--bg-tertiary);
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .meta-tag.advanced { color: var(--accent-magenta); }
+    .meta-tag.profit { color: var(--accent-gold); }
+
+    .lesson-content {
+      color: var(--text-secondary);
+      line-height: 1.8;
+      font-size: 16px;
+    }
+
+    .lesson-content h1, .lesson-content h2, .lesson-content h3 {
+      color: var(--text-primary);
+      font-family: 'Orbitron', sans-serif;
+      margin: 25px 0 15px;
+    }
+
+    .lesson-content h2 { color: var(--accent-cyan); font-size: 20px; }
+    .lesson-content h3 { color: var(--accent-blue); font-size: 18px; }
+
+    .lesson-content ul, .lesson-content ol {
+      margin: 15px 0;
+      padding-left: 25px;
+    }
+
+    .lesson-content li {
+      margin: 10px 0;
+    }
+
+    .lesson-content code {
+      background: var(--bg-tertiary);
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-cyan);
+      font-size: 14px;
+    }
+
+    .lesson-content pre {
+      background: var(--bg-tertiary);
+      padding: 20px;
+      border-radius: 12px;
+      overflow-x: auto;
+      margin: 20px 0;
+      border-left: 4px solid var(--accent-cyan);
+    }
+
+    .lesson-content pre code {
+      background: none;
+      padding: 0;
+    }
+
+    .lesson-content blockquote {
+      background: linear-gradient(135deg, rgba(0, 245, 212, 0.1) 0%, rgba(247, 37, 133, 0.1) 100%);
+      border-left: 4px solid var(--accent-gold);
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 0 12px 12px 0;
+      font-style: italic;
+    }
+
+    .lesson-content strong {
+      color: var(--accent-gold);
+    }
+
+    .lesson-content table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    .lesson-content th, .lesson-content td {
+      padding: 12px;
+      border: 1px solid var(--border-color);
+      text-align: left;
+    }
+
+    .lesson-content th {
+      background: var(--bg-tertiary);
+      color: var(--accent-cyan);
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px;
+      gap: 20px;
+    }
+
+    .loading-spinner {
+      width: 60px;
+      height: 60px;
+      border: 3px solid var(--bg-tertiary);
+      border-top-color: var(--accent-cyan);
+      border-right-color: var(--accent-magenta);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent-cyan);
+      font-size: 14px;
+      animation: blink 1s infinite;
+    }
+
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0.5; }
+    }
+
+    .chat-input-area {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 20px;
+    }
+
+    .chat-input-wrapper {
+      display: flex;
+      gap: 15px;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 15px;
+      padding: 15px 20px;
+      color: var(--text-primary);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      resize: none;
+      min-height: 50px;
+      max-height: 150px;
+    }
+
+    .chat-input:focus {
+      outline: none;
+      border-color: var(--accent-cyan);
+      box-shadow: var(--glow-cyan);
+    }
+
+    .chat-input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .send-btn {
+      width: 55px;
+      height: 55px;
+      background: var(--gradient-1);
+      border: none;
+      border-radius: 15px;
+      color: var(--bg-primary);
+      font-size: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .send-btn:hover {
+      transform: scale(1.05);
+      box-shadow: var(--glow-cyan);
+    }
+
+    .send-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .strategy-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 25px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .card-icon {
+      width: 45px;
+      height: 45px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+
+    .card-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      letter-spacing: 1px;
+    }
+
+    .quick-strategies {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .strategy-btn {
+      padding: 15px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      color: var(--text-primary);
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .strategy-btn:hover {
+      border-color: var(--accent-cyan);
+      background: linear-gradient(135deg, rgba(0, 245, 212, 0.1) 0%, rgba(123, 44, 191, 0.1) 100%);
+      transform: translateX(5px);
+    }
+
+    .strategy-btn i {
+      color: var(--accent-cyan);
+    }
+
+    .prop-firm-section .card-icon {
+      background: var(--gradient-gold);
+      color: #000;
+    }
+
+    .prop-firm-section .card-title {
+      color: var(--accent-gold);
+    }
+
+    .prop-challenges {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .challenge-item {
+      padding: 15px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .challenge-item:hover {
+      border-color: var(--accent-gold);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+    }
+
+    .challenge-name {
+      font-weight: 600;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .challenge-name i {
+      color: var(--accent-gold);
+    }
+
+    .challenge-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .alerts-panel {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 25px;
+    }
+
+    .alerts-panel .card-icon {
+      background: var(--gradient-2);
+      color: #fff;
+    }
+
+    .alerts-panel .card-title {
+      color: var(--accent-magenta);
+    }
+
+    .alert-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .alert-item {
+      padding: 12px;
+      background: var(--bg-tertiary);
+      border-radius: 10px;
+      border-left: 3px solid var(--accent-cyan);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .alert-item.profit { border-left-color: var(--accent-gold); }
+    .alert-item.danger { border-left-color: var(--accent-magenta); }
+
+    .alert-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .progress-section {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 25px;
+    }
+
+    .progress-section .card-icon {
+      background: linear-gradient(135deg, #00f5d4, #4cc9f0);
+      color: #000;
+    }
+
+    .progress-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .progress-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .progress-bar {
+      height: 8px;
+      background: var(--bg-tertiary);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.5s ease;
+    }
+
+    .progress-fill.cyan { background: var(--gradient-1); }
+    .progress-fill.gold { background: var(--gradient-gold); }
+    .progress-fill.magenta { background: var(--gradient-2); }
+
+    .welcome-screen {
+      text-align: center;
+      padding: 60px 30px;
+    }
+
+    .welcome-icon {
+      font-size: 80px;
+      margin-bottom: 30px;
+      background: var(--gradient-1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .welcome-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 32px;
+      margin-bottom: 15px;
+      background: var(--gradient-1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .welcome-subtitle {
+      color: var(--text-secondary);
+      font-size: 18px;
+      margin-bottom: 40px;
+      max-width: 500px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      margin-top: 30px;
+    }
+
+    .feature-item {
+      padding: 25px;
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: 15px;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .feature-item:hover {
+      transform: translateY(-5px);
+      border-color: var(--accent-cyan);
+      box-shadow: var(--glow-cyan);
+    }
+
+    .feature-icon {
+      font-size: 30px;
+      margin-bottom: 15px;
+    }
+
+    .feature-item:nth-child(1) .feature-icon { color: var(--accent-cyan); }
+    .feature-item:nth-child(2) .feature-icon { color: var(--accent-gold); }
+    .feature-item:nth-child(3) .feature-icon { color: var(--accent-magenta); }
+    .feature-item:nth-child(4) .feature-icon { color: var(--accent-blue); }
+
+    .feature-name {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 20px;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-content {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 30px;
+      max-width: 500px;
+      width: 100%;
+      transform: scale(0.9);
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.active .modal-content {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 20px;
+      color: var(--accent-cyan);
+    }
+
+    .modal-close {
+      width: 40px;
+      height: 40px;
+      background: var(--bg-tertiary);
+      border: none;
+      border-radius: 10px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 18px;
+      transition: all 0.3s ease;
+    }
+
+    .modal-close:hover {
+      background: var(--accent-magenta);
+      color: #fff;
+    }
+
+    .modal-body {
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 15px;
+      margin-top: 25px;
+    }
+
+    .modal-btn {
+      flex: 1;
+      padding: 15px;
+      border-radius: 12px;
+      font-family: 'Rajdhani', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .modal-btn.primary {
+      background: var(--gradient-1);
+      border: none;
+      color: var(--bg-primary);
+    }
+
+    .modal-btn.secondary {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    @media (max-width: 768px) {
+      .app-container {
+        padding: 10px;
+      }
+
+      header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+      }
+
+      .logo-text {
+        font-size: 18px;
+      }
+
+      .lesson-title {
+        font-size: 22px;
+      }
+
+      .welcome-title {
+        font-size: 24px;
+      }
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--bg-tertiary);
+      border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--accent-cyan);
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-overlay"></div>
+  
+  <div class="app-container">
+    <header>
+      <div class="logo">
+        <div class="logo-icon"><i class="fas fa-chart-line"></i></div>
+        <span class="logo-text">CRYPTOMASTER AI</span>
+      </div>
+      <div class="header-controls">
+        <button class="sound-toggle active" id="soundToggle" title="Sound Alerts">
+          <i class="fas fa-volume-high"></i>
+        </button>
+        <button class="theme-toggle" id="themeToggle" title="Toggle Theme">
+          <i class="fas fa-sun"></i>
+        </button>
+        <div class="level-badge">
+          <i class="fas fa-crown"></i>
+          ELITE TRADER
+        </div>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <aside class="sidebar">
+        <div class="sidebar-title">
+          <i class="fas fa-graduation-cap"></i>
+          TRADING MODULES
+        </div>
+        <div class="module-list">
+          <div class="module-item" data-module="vwap">
+            <div class="module-icon"><i class="fas fa-wave-square"></i></div>
+            <div class="module-info">
+              <div class="module-name">VWAP Mastery</div>
+              <div class="module-lessons">Institutional Secrets</div>
+            </div>
+          </div>
+          <div class="module-item" data-module="orderflow">
+            <div class="module-icon"><i class="fas fa-stream"></i></div>
+            <div class="module-info">
+              <div class="module-name">Order Flow</div>
+              <div class="module-lessons">Read Market Intent</div>
+            </div>
+          </div>
+          <div class="module-item" data-module="liquidity">
+            <div class="module-icon"><i class="fas fa-water"></i></div>
+            <div class="module-info">
+              <div class="module-name">Liquidity Hunting</div>
+              <div class="module-lessons">Smart Money Concepts</div>
+            </div>
+          </div>
+          <div class="module-item" data-module="wyckoff">
+            <div class="module-icon"><i class="fas fa-chess"></i></div>
+            <div class="module-info">
+              <div class="module-name">Wyckoff Method</div>
+              <div class="module-lessons">Accumulation/Distribution</div>
+            </div>
+          </div>
+          <div class="module-item" data-module="algo">
+            <div class="module-icon"><i class="fas fa-robot"></i></div>
+            <div class="module-info">
+              <div class="module-name">Algo Detection</div>
+              <div class="module-lessons">Beat the Bots</div>
+            </div>
+          </div>
+          <div class="module-item" data-module="risk">
+            <div class="module-icon"><i class="fas fa-shield-halved"></i></div>
+            <div class="module-info">
+              <div class="module-name">Risk Management</div>
+              <div class="module-lessons">Capital Protection</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="center-panel">
+        <div class="lesson-display" id="lessonDisplay">
+          <div class="welcome-screen" id="welcomeScreen">
+            <div class="welcome-icon"><i class="fas fa-rocket"></i></div>
+            <h1 class="welcome-title">Welcome to Elite Trading</h1>
+            <p class="welcome-subtitle">Master institutional-grade strategies that only 1% of traders know. Let AI teach you the secrets of consistent profitability.</p>
+            <div class="feature-grid">
+              <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-brain"></i></div>
+                <div class="feature-name">AI-Powered Learning</div>
+                <div class="feature-desc">Personalized lessons from advanced AI</div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-trophy"></i></div>
+                <div class="feature-name">Prop Firm Ready</div>
+                <div class="feature-desc">Pass challenges with confidence</div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-lock"></i></div>
+                <div class="feature-name">Secret Strategies</div>
+                <div class="feature-desc">VWAP, Order Flow & more</div>
+              </div>
+              <div class="feature-item">
+                <div class="feature-icon"><i class="fas fa-bell"></i></div>
+                <div class="feature-name">Smart Alerts</div>
+                <div class="feature-desc">Audio notifications on key info</div>
+              </div>
+            </div>
+          </div>
+          <div id="lessonContent" style="display: none;">
+            <div class="lesson-header">
+              <h1 class="lesson-title" id="lessonTitle"></h1>
+              <div class="lesson-meta">
+                <span class="meta-tag advanced"><i class="fas fa-star"></i> Advanced</span>
+                <span class="meta-tag profit"><i class="fas fa-coins"></i> High Profit</span>
+              </div>
+            </div>
+            <div class="lesson-content" id="lessonText"></div>
+          </div>
+          <div class="loading-state" id="loadingState" style="display: none;">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Generating elite knowledge...</div>
+          </div>
+        </div>
+
+        <div class="chat-input-area">
+          <div class="chat-input-wrapper">
+            <textarea 
+              class="chat-input" 
+              id="chatInput" 
+              placeholder="Ask anything about crypto trading, strategies, prop firms..."
+              rows="1"
+            ></textarea>
+            <button class="send-btn" id="sendBtn">
+              <i class="fas fa-paper-plane"></i>
+            </button>
+          </div>
+        </div>
+      </main>
+
+      <aside class="right-panel">
+        <div class="strategy-card">
+          <div class="card-header">
+            <div class="card-icon" style="background: var(--gradient-1); color: #000;">
+              <i class="fas fa-bolt"></i>
+            </div>
+            <div class="card-title">QUICK STRATEGIES</div>
+          </div>
+          <div class="quick-strategies">
+            <button class="strategy-btn" data-strategy="vwap-deviation">
+              <i class="fas fa-chart-area"></i>
+              VWAP Deviation Trading
+            </button>
+            <button class="strategy-btn" data-strategy="iceberg">
+              <i class="fas fa-mountain"></i>
+              Iceberg Order Detection
+            </button>
+            <button class="strategy-btn" data-strategy="delta-divergence">
+              <i class="fas fa-arrows-left-right"></i>
+              Delta Divergence Signals
+            </button>
+            <button class="strategy-btn" data-strategy="funding-arb">
+              <i class="fas fa-percent"></i>
+              Funding Rate Arbitrage
+            </button>
+          </div>
+        </div>
+
+        <div class="strategy-card prop-firm-section">
+          <div class="card-header">
+            <div class="card-icon">
+              <i class="fas fa-trophy"></i>
+            </div>
+            <div class="card-title">PROP FIRM MASTERY</div>
+          </div>
+          <div class="prop-challenges">
+            <div class="challenge-item" data-challenge="ftmo">
+              <div class="challenge-name"><i class="fas fa-medal"></i> FTMO Challenge</div>
+              <div class="challenge-desc">10% profit, 5% max daily loss</div>
+            </div>
+            <div class="challenge-item" data-challenge="mff">
+              <div class="challenge-name"><i class="fas fa-medal"></i> My Forex Funds</div>
+              <div class="challenge-desc">8% profit target strategy</div>
+            </div>
+            <div class="challenge-item" data-challenge="general">
+              <div class="challenge-name"><i class="fas fa-medal"></i> General Prop Rules</div>
+              <div class="challenge-desc">Universal passing strategies</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alerts-panel">
+          <div class="card-header">
+            <div class="card-icon">
+              <i class="fas fa-bell"></i>
+            </div>
+            <div class="card-title">LEARNING ALERTS</div>
+          </div>
+          <div class="alert-list" id="alertList">
+            <div class="alert-item">
+              <i class="fas fa-lightbulb" style="color: var(--accent-cyan);"></i>
+              <span>Select a module to begin learning</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="progress-section">
+          <div class="card-header">
+            <div class="card-icon">
+              <i class="fas fa-chart-pie"></i>
+            </div>
+            <div class="card-title">YOUR PROGRESS</div>
+          </div>
+          <div class="progress-bars">
+            <div class="progress-item">
+              <div class="progress-label">
+                <span>Technical Analysis</span>
+                <span id="techProgress">0%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill cyan" id="techBar" style="width: 0%;"></div>
+              </div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-label">
+                <span>Risk Management</span>
+                <span id="riskProgress">0%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill gold" id="riskBar" style="width: 0%;"></div>
+              </div>
+            </div>
+            <div class="progress-item">
+              <div class="progress-label">
+                <span>Prop Firm Ready</span>
+                <span id="propProgress">0%</span>
+              </div>
+              <div class="progress-bar">
+                <div class="progress-fill magenta" id="propBar" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">Notification</h2>
+        <button class="modal-close" id="modalClose"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions">
+        <button class="modal-btn secondary" id="modalCancel">Cancel</button>
+        <button class="modal-btn primary" id="modalConfirm">Got It</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    let soundEnabled = true;
+    let isLoading = false;
+    let progress = { tech: 0, risk: 0, prop: 0 };
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      switch(type) {
+        case 'success':
+          oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+          oscillator.frequency.setValueAtTime(1100, audioContext.currentTime + 0.1);
+          gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+          gainNode.gain.exponentialDecayTo = 0.01;
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.2);
+          break;
+        case 'alert':
+          oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+          oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.05);
+          oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+          gainNode.gain.setValueAtTime(0.12, audioContext.currentTime);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.15);
+          break;
+        case 'notification':
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+          oscillator.frequency.setValueAtTime(659, audioContext.currentTime + 0.1);
+          gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.2);
+          break;
+        case 'complete':
+          oscillator.type = 'sine';
+          [523, 659, 784, 1047].forEach((freq, i) => {
+            oscillator.frequency.setValueAtTime(freq, audioContext.currentTime + i * 0.1);
+          });
+          gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.5);
+          break;
+      }
+      
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.5);
+    }
+
+    function showModal(title, body, onConfirm) {
+      document.getElementById('modalTitle').textContent = title;
+      document.getElementById('modalBody').innerHTML = body;
+      document.getElementById('modalOverlay').classList.add('active');
+      
+      const confirmBtn = document.getElementById('modalConfirm');
+      const newConfirmBtn = confirmBtn.cloneNode(true);
+      confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+      
+      newConfirmBtn.addEventListener('click', () => {
+        document.getElementById('modalOverlay').classList.remove('active');
+        if (onConfirm) onConfirm();
+      });
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    document.getElementById('modalClose').addEventListener('click', closeModal);
+    document.getElementById('modalCancel').addEventListener('click', closeModal);
+
+    function addAlert(message, type = 'info') {
+      const alertList = document.getElementById('alertList');
+      const alert = document.createElement('div');
+      alert.className = `alert-item ${type}`;
+      
+      const icons = {
+        info: 'fa-lightbulb',
+        profit: 'fa-coins',
+        danger: 'fa-triangle-exclamation'
+      };
+      
+      const colors = {
+        info: 'var(--accent-cyan)',
+        profit: 'var(--accent-gold)',
+        danger: 'var(--accent-magenta)'
+      };
+      
+      alert.innerHTML = `
+        <i class="fas ${icons[type]}" style="color: ${colors[type]};"></i>
+        <span>${message}</span>
+        <span class="alert-time">${new Date().toLocaleTimeString()}</span>
+      `;
+      
+      alertList.insertBefore(alert, alertList.firstChild);
+      
+      if (alertList.children.length > 5) {
+        alertList.removeChild(alertList.lastChild);
+      }
+      
+      playSound('notification');
+    }
+
+    function updateProgress(category, amount) {
+      progress[category] = Math.min(100, progress[category] + amount);
+      
+      document.getElementById(`${category}Progress`).textContent = `${progress[category]}%`;
+      document.getElementById(`${category}Bar`).style.width = `${progress[category]}%`;
+    }
+
+    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      document.documentElement.classList.add('light');
+    }
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+      if (!event.matches) {
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+      }
+    });
+
+    document.getElementById('themeToggle').addEventListener('click', () => {
+      document.documentElement.classList.toggle('light');
+      const icon = document.querySelector('#themeToggle i');
+      icon.className = document.documentElement.classList.contains('light') ? 'fas fa-moon' : 'fas fa-sun';
+      playSound('alert');
+    });
+
+    document.getElementById('soundToggle').addEventListener('click', function() {
+      soundEnabled = !soundEnabled;
+      this.classList.toggle('active');
+      const icon = this.querySelector('i');
+      icon.className = soundEnabled ? 'fas fa-volume-high' : 'fas fa-volume-xmark';
+      if (soundEnabled) playSound('success');
+    });
+
+    const modulePrompts = {
+      vwap: `You are an elite crypto trading instructor. Teach me EVERYTHING about VWAP (Volume Weighted Average Price) trading that most traders don't know. Include:
+
+1. **The REAL reason institutions use VWAP** - not just the basic definition
+2. **Hidden VWAP strategies**: deviation bands, VWAP crosses, anchored VWAP secrets
+3. **How to identify institutional accumulation/distribution** using VWAP
+4. **VWAP in crypto specifically** - 24/7 markets, session resets, multi-timeframe analysis
+5. **Entry/exit signals** that actually work
+6. **Common mistakes** that lose money
+7. **Specific setups with examples** - be detailed with price action descriptions
+
+Make it advanced, actionable, and include specific strategies for crypto trading. Format with clear headers and bullet points.`,
+
+      orderflow: `You are an elite crypto trading instructor. Teach me ADVANCED Order Flow analysis secrets that institutions use. Include:
+
+1. **Reading the tape** - how to interpret time & sales data
+2. **Delta analysis** - cumulative delta divergences, delta reversals
+3. **Footprint chart mastery** - imbalances, stacked imbalances, exhaustion
+4. **Iceberg order detection** - how to spot hidden institutional orders
+5. **Absorption and initiative patterns** - what they really mean
+6. **CVD (Cumulative Volume Delta) strategies** for crypto
+7. **Combining order flow with price action** for high-probability setups
+8. **Specific trade setups** with detailed examples
+
+Make it highly technical and actionable for crypto trading.`,
+
+      liquidity: `You are an elite crypto trading instructor. Teach me ADVANCED Liquidity concepts and Smart Money strategies. Include:
+
+1. **Liquidity pools and stop hunts** - how institutions engineer moves
+2. **Order blocks** - valid vs invalid, how to trade them
+3. **Fair value gaps** - when they fill, when they don't
+4. **Breaker blocks and mitigation blocks** - advanced entry techniques
+5. **Inducement patterns** - how smart money traps retail
+6. **Kill zones and optimal trade times** for crypto
+7. **Premium vs discount zones** - proper Fibonacci application
+8. **Combining all concepts** into a complete trading system
+
+Provide specific crypto examples and exact entry/exit criteria.`,
+
+      wyckoff: `You are an elite crypto trading instructor. Teach me the COMPLETE Wyckoff Method for crypto trading. Include:
+
+1. **The Composite Operator** - understanding smart money intentions
+2. **Accumulation schematics** - all phases explained with crypto examples
+3. **Distribution schematics** - spotting tops before they happen
+4. **Springs and upthrusts** - the highest probability entries
+5. **Volume analysis in Wyckoff** - effort vs result
+6. **Re-accumulation vs distribution** - how to tell the difference
+7. **Wyckoff for crypto** - adaptations for 24/7 markets
+8. **Complete trade plans** using Wyckoff
+
+Include specific Bitcoin/altcoin examples with detailed analysis.`,
+
+      algo: `You are an elite crypto trading instructor. Teach me how to DETECT and EXPLOIT algorithmic trading patterns. Include:
+
+1. **Common algo patterns** - TWAP, VWAP algos, iceberg orders
+2. **Market maker behavior** - how they move markets
+3. **Spoofing detection** - identifying fake orders
+4. **Stop hunt patterns** - how to identify and exploit them
+5. **Session-based algo behavior** - hourly, daily, weekly patterns
+6. **Funding rate manipulation** in crypto perpetuals
+7. **Flash crash and recovery patterns**
+8. **Trading against institutional algos** - specific strategies
+
+Provide actionable methods to identify and trade for/against algos in crypto.`,
+
+      risk: `You are an elite crypto trading instructor. Teach me ADVANCED Risk Management for consistent profitability. Include:
+
+1. **Position sizing formulas** - Kelly Criterion, fixed fractional, volatility-based
+2. **Risk-to-reward optimization** - why 1:2 isn't always optimal
+3. **Portfolio risk management** - multiple correlated positions
+4. **Drawdown management strategies** - recovery techniques
+5. **Profit scaling techniques** - pyramiding, trailing stops
+6. **Volatility-based position sizing** - adapting to market conditions
+7. **Risk-adjusted returns** - Sharpe ratio for crypto
+8. **Prop firm specific rules** - managing daily loss limits, consistency requirements
+
+Provide mathematical formulas and specific crypto examples.`
+    };
+
+    const quickStrategies = {
+        'vwap-deviation': `Detailed VWAP Deviation Strategy:
+        
+**Core Concept**: Trade price deviations from VWAP that signal overextension and potential reversal.
+
+**Setup Rules**:
+1. Wait for price to deviate 1.5-2 standard deviations from VWAP
+2. Volume must confirm - decreasing on extension, increasing on reversal
+3. Look for exhaustion candles (long wicks) at deviation extremes
+
+**Entry Signals**:
+- Bearish: Price > 1.75 SD above VWAP + bearish divergence + volume decline
+- Bullish: Price < 1.75 SD below VWAP + bullish divergence + volume increase
+
+**Risk Management**:
+- Stop loss: Beyond 2.25 SD from VWAP
+- Take profit: Return to VWAP or 0.5-1 SD opposite side
+- Position size: 1-2% max per trade
+
+**Crypto Specifics**:
+- Watch for overnight Asian session reversals
+- Monitor funding rates at extremes
+- Check liquidation levels near deviation points`,
+
+        'iceberg': `Iceberg Order Detection Strategy:
+
+**What Are Iceberg Orders**: Large institutional orders broken into smaller chunks to hide true size.
+
+**Detection Methods**:
+1. **Volume Clusters**: Consistent volume at same price levels
+2. **Time & Sales**: Repeated orders of identical size
+3. **Order Book**: Large hidden orders that don't move price
+
+**Trading Signals**:
+- **Accumulation**: Multiple iceberg buys in downtrend = reversal signal
+- **Distribution**: Multiple iceberg sells in uptrend = topping signal
+- **Breakout**: Iceberg orders getting filled then removal = imminent move
+
+**Entry Tactics**:
+1. Wait for 3+ iceberg orders at same level
+2. Enter on pullback to iceberg zone with volume confirmation
+3. Stop loss below/above iceberg cluster
+4. Target next liquidity pool
+
+**Crypto Exchanges**:
+- Binance: Most iceberg activity
+- Bybit: Visible in advanced order book
+- FTX: Less common but present`,
+
+        'delta-divergence': `Delta Divergence Trading Strategy:
+
+**Delta Explained**: Difference between buying and selling volume.
+
+**Key Patterns**:
+1. **Positive Delta Divergence**: Price making lower lows, delta making higher lows = Bullish reversal
+2. **Negative Delta Divergence**: Price making higher highs, delta making lower highs = Bearish reversal
+3. **Hidden Divergence**: Continuation signals
+
+**Setup Criteria**:
+1. Clear price trend
+2. Divergence on 15M+ timeframes
+3. Volume confirmation
+4. Support/resistance alignment
+
+**Entry Rules**:
+- Enter on first pullback after divergence confirmation
+- Stop loss beyond divergence extreme
+- Target: Previous swing high/low or 1.5-2R
+
+**Crypto Specifics**:
+- Works best on liquid pairs: BTC/USD, ETH/USD
+- Monitor perpetual funding with delta
+- Combine with liquidation heatmaps`,
+
+        'funding-arb': `Funding Rate Arbitrage Strategy:
+
+**Funding Rate Basics**: Fee paid between longs and shorts on perpetual contracts.
+
+**Strategy Types**:
+1. **Positive Funding Arbitrage**:
+   - When funding > 0.05% per 8h
+   - Short spot, long perpetual
+   - Capture funding while hedged
+
+2. **Negative Funding Arbitrage**:
+   - When funding < -0.05% per 8h
+   - Long spot, short perpetual
+   - Receive funding payments
+
+**Execution Steps**:
+1. Monitor top 10 coins funding rates
+2. Calculate spread after fees
+3. Execute hedge on spot and perpetual
+4. Close when funding normalizes or spread targets hit
+
+**Risk Management**:
+- Maximum position: 5% per pair
+- Stop loss: 2% from entry
+- Watch for basis risk
+- Monitor exchange reliability
+
+**Best Conditions**:
+- High volatility periods
+- Market uncertainty
+- Major news events`
+    };
+
+    const propFirmChallenges = {
+        ftmo: `FTMO Challenge Strategy Guide:
+
+**Challenge Rules**:
+- Phase 1: 10% profit target, 5% daily loss, 10% max loss
+- Phase 2: 5% profit target, 5% daily loss, 10% max loss
+- No news trading restrictions
+- 30-day time limit
+
+**Winning Strategy**:
+1. **Week 1 (3-4% gain)**:
+   - Trade only London/NY overlap (2-5PM GMT)
+   - Focus on 1 major pair (EUR/USD or GBP/USD)
+   - Maximum 2 trades per day
+   - 1:3 risk-reward minimum
+
+2. **Week 2 (3-4% gain)**:
+   - Add second pair if profitable
+   - Increase position size by 25%
+   - Maintain strict risk rules
+
+3. **Week 3-4 (Balance protection)**:
+   - Reduce trading frequency
+   - Focus on high-probability setups only
+   - Use trailing stops to lock profits
+
+**Key Setups for FTMO**:
+1. London Breakout (7-9AM GMT)
+2. NY Session Retracement (1-3PM GMT)
+3. Daily Support/Resistance Bounces
+
+**Risk Management**:
+- Never risk more than 0.5% per trade
+- Stop trading after -3% daily
+- Take profit in chunks (50% at 1R, 50% at 3R)
+- Use weekend gaps to your advantage`,
+
+        mff: `My Forex Funds Challenge Strategy:
+
+**Challenge Structure**:
+- Evaluation: 8% profit target, 5% daily drawdown, 12% total drawdown
+- Verification: 5% profit target, same drawdown rules
+- No consistency rules (unlike FTMO)
+
+**Optimal Approach**:
+1. **Aggressive Start**:
+   - Aim for 4-5% in first week
+   - Use 1:2 risk-reward trades
+   - Trade during high volatility (NY open)
+
+2. **Conservative Finish**:
+   - Last 3-4% slowly over 2-3 weeks
+   - Reduce position size by 50%
+   - Only A+ setups
+
+**Best Trading Times**:
+- EUR/USD: 8-11AM EST
+- GBP/USD: 3-6AM EST
+- USD/JPY: 7-10PM EST (Asian session)
+
+**Strategy Combination**:
+- 70%: Price action at key levels
+- 20%: News volatility trades (NFP, CPI)
+- 10%: Overnight positions
+
+**Risk Controls**:
+- Maximum 1% risk per trade
+- Stop trading after -2.5% daily
+- Weekly profit target: 2-3%
+- Use breakeven stops after 1.5R profit`,
+
+        general: `Universal Prop Firm Passing Strategy:
+
+**Core Principles**:
+1. **Consistency Over Everything**
+   - Similar position sizes
+   - Same trading times
+   - Consistent risk per trade
+
+2. **Risk-First Mindset**
+   - Maximum 0.5-1% risk per trade
+   - Daily loss limit: 2-3%
+   - Weekly loss limit: 5%
+
+3. **Process Over Profits**
+   - Follow your rules exactly
+   - Journal every trade
+   - Review weekly performance
+
+**The 3-Phase Approach**:
+
+**Phase 1: Foundation (Days 1-10)**
+- Goal: 3-4% profit
+- Trade only 1-2 pairs
+- Maximum 2 trades/day
+- Focus on daily chart levels
+
+**Phase 2: Growth (Days 11-20)**
+- Goal: 3-4% profit
+- Add 1 more pair if profitable
+- Increase size by 25%
+- Maintain discipline
+
+**Phase 3: Protection (Days 21-30)**
+- Goal: Survive and finish
+- Reduce trading frequency
+- Use trailing stops
+- Avoid last-minute risks
+
+**Key Mental Tips**:
+- Treat it as a job, not gambling
+- Walk away after 2 losing trades
+- Never chase losses
+- Celebrate process, not profits`
+    };
+
+    let currentModule = null;
+
+    // Module selection
+    document.querySelectorAll('.module-item').forEach(item => {
+        item.addEventListener('click', async function() {
+            // Remove active class from all modules
+            document.querySelectorAll('.module-item').forEach(m => m.classList.remove('active'));
+            // Add active class to clicked module
+            this.classList.add('active');
+            
+            const moduleId = this.dataset.module;
+            currentModule = moduleId;
+            
+            // Show loading state
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('lessonContent').style.display = 'none';
+            document.getElementById('loadingState').style.display = 'flex';
+            
+            // Simulate AI processing
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Generate lesson content
+            const prompt = modulePrompts[moduleId];
+            const lessonContent = await generateLesson(prompt);
+            
+            // Display lesson
+            const moduleNames = {
+                vwap: 'VWAP Mastery - Institutional Secrets',
+                orderflow: 'Advanced Order Flow Analysis',
+                liquidity: 'Liquidity Hunting & Smart Money Concepts',
+                wyckoff: 'Wyckoff Method - Accumulation/Distribution',
+                algo: 'Algorithmic Trading Detection & Exploitation',
+                risk: 'Advanced Risk Management'
+            };
+            
+            document.getElementById('lessonTitle').textContent = moduleNames[moduleId];
+            document.getElementById('lessonText').innerHTML = marked.parse(lessonContent);
+            
+            // Hide loading, show content
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('lessonContent').style.display = 'block';
+            
+            // Add alert
+            addAlert(`Started learning: ${moduleNames[moduleId]}`, 'info');
+            
+            // Update progress
+            updateProgress('tech', 15);
+            playSound('success');
+            
+            // Auto-scroll to top
+            document.getElementById('lessonDisplay').scrollTop = 0;
+        });
+    });
+
+    // Quick strategy buttons
+    document.querySelectorAll('.strategy-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const strategyId = this.dataset.strategy;
+            showModal(
+                'Quick Strategy Guide',
+                marked.parse(quickStrategies[strategyId]),
+                () => {
+                    addAlert(`Studied: ${this.textContent.trim()}`, 'profit');
+                    updateProgress('tech', 5);
+                    playSound('complete');
+                }
+            );
+        });
+    });
+
+    // Prop firm challenges
+    document.querySelectorAll('.challenge-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const challengeId = this.dataset.challenge;
+            showModal(
+                'Prop Firm Challenge Guide',
+                marked.parse(propFirmChallenges[challengeId]),
+                () => {
+                    addAlert(`Studied: ${this.querySelector('.challenge-name').textContent}`, 'profit');
+                    updateProgress('prop', 10);
+                    playSound('success');
+                }
+            );
+        });
+    });
+
+    // Chat functionality
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    // Auto-resize textarea
+    chatInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+    });
+
+    // Send message on Enter (without Shift)
+    chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
+    });
+
+    // Send button click
+    sendBtn.addEventListener('click', sendMessage);
+
+    async function sendMessage() {
+        const message = chatInput.value.trim();
+        if (!message || isLoading) return;
+        
+        // Clear input
+        chatInput.value = '';
+        chatInput.style.height = 'auto';
+        
+        // Disable input during processing
+        isLoading = true;
+        sendBtn.disabled = true;
+        chatInput.disabled = true;
+        
+        // Add user message to alerts
+        addAlert(`You asked: "${message.substring(0, 50)}${message.length > 50 ? '...' : ''}"`, 'info');
+        
+        // Show loading in lesson area
+        document.getElementById('welcomeScreen').style.display = 'none';
+        document.getElementById('lessonContent').style.display = 'none';
+        document.getElementById('loadingState').style.display = 'flex';
+        
+        try {
+            // Generate AI response
+            const response = await generateAIResponse(message);
+            
+            // Display response
+            document.getElementById('lessonTitle').textContent = 'AI Trading Assistant';
+            document.getElementById('lessonText').innerHTML = marked.parse(response);
+            
+            document.getElementById('loadingState').style.display = 'none';
+            document.getElementById('lessonContent').style.display = 'block';
+            
+            // Update progress
+            updateProgress('risk', 5);
+            playSound('notification');
+            
+        } catch (error) {
+            console.error('Error generating response:', error);
+            showModal('Error', 'Failed to generate response. Please try again.');
+        } finally {
+            isLoading = false;
+            sendBtn.disabled = false;
+            chatInput.disabled = false;
+            chatInput.focus();
+        }
+    }
+
+    async function generateLesson(prompt) {
+        // Simulate AI generation
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Return mock lesson based on prompt
+        if (prompt.includes('VWAP')) {
+            return `# VWAP Mastery - Institutional Secrets
+
+## The REAL Reason Institutions Use VWAP
+
+Most retail traders think VWAP is just a moving average with volume. They're wrong. **Institutions use VWAP as a benchmark for execution quality**. When a fund needs to buy $50M of Bitcoin, they measure their execution against VWAP. Beating VWAP means they got better prices than the average market participant.
+
+## Hidden VWAP Strategies
+
+### 1. Deviation Band Scalping
+- **Setup**: Price moves 1.5-2 standard deviations from VWAP
+- **Signal**: Decreasing volume on extension, increasing on reversal
+- **Entry**: At 1.75 SD with candlestick confirmation
+- **Stop**: Beyond 2.25 SD
+- **Target**: Return to VWAP or 0.5 SD opposite side
+
+### 2. VWAP Cross Strategies
+**Bullish Cross**:
+- Price crosses above VWAP
+- Volume spike on cross
+- Previous resistance becomes support at VWAP
+- Entry: Retest of VWAP as support
+
+**Bearish Cross**:
+- Price crosses below VWAP
+- High volume confirmation
+- Previous support becomes resistance
+- Entry: Retest of VWAP as resistance
+
+### 3. Anchored VWAP Secrets
+Anchor VWAP to:
+- Major news events (Fed announcements)
+- Key support/resistance breaks
+- High volume nodes
+- Session opens (NY, London, Asian)
+
+## Institutional Accumulation/Distribution Detection
+
+**Accumulation Pattern**:
+1. Price holds above VWAP on low volume pullbacks
+2. VWAP acts as dynamic support
+3. Volume increases on up moves, decreases on down moves
+4. Timeframe: Multiple days/weeks holding above VWAP
+
+**Distribution Pattern**:
+1. Price holds below VWAP on low volume bounces
+2. VWAP acts as dynamic resistance
+3. Volume increases on down moves, decreases on up moves
+4. Failed attempts to reclaim VWAP
+
+## Crypto-Specific VWAP Tactics
+
+### 24/7 Market Adjustments
+- **Session VWAPs**: Create separate VWAPs for Asian (00:00-08:00 GMT), London (08:00-16:00 GMT), NY (13:00-21:00 GMT) sessions
+- **Weekend Anchors**: Anchor VWAP to Friday close for weekend trading
+- **Funding Rate Alignment**: Combine VWAP with funding rate extremes
+
+### Multi-Timeframe VWAP Confluence
+1. **Daily VWAP**: Primary trend filter
+2. **4-Hour VWAP**: Swing trade direction
+3. **1-Hour VWAP**: Entry timing
+4. **15-Minute VWAP**: Precise entry/exit
+
+**Confluence Rules**:
+- Trade in direction where price is above/below ALL VWAPs
+- Look for stacked VWAPs (all aligned)
+- Avoid when VWAPs are tangled/contradicting
+
+## Entry/Exit Signals That Actually Work
+
+### High-Probability Entries
+1. **VWAP Retest After Break**:
+   - Price breaks VWAP with volume
+   - Pulls back to test VWAP
+   - Holds as support/resistance
+   - Enter with stop beyond recent swing
+
+2. **Deviation Reversal**:
+   - Price extends 1.75+ SD from VWAP
+   - Volume declines on extension
+   - Exhaustion candle (long wick) forms
+   - Enter on close of reversal candle
+
+### Exit Strategies
+1. **VWAP as Take Profit**:
+   - When trading deviations, TP at VWAP
+   - 60-70% of position at VWAP
+   - Trail remainder for extension
+
+2. **VWAP Flip as Stop**:
+   - If VWAP flips from support to resistance (or vice versa)
+   - Exit entire position
+   - Wait for new setup
+
+## Common Mistakes That Lose Money
+
+1. **Trading Chops**:
+   - VWAP works best in trending markets
+   - Avoid when price is whipping around VWAP
+   - Wait for clear directional breaks
+
+2. **Ignoring Volume**:
+   - VWAP without volume context is useless
+   - Always check volume profile
+   - No volume confirmation = no trade
+
+3. **Wrong Timeframe**:
+   - Using daily VWAP for scalping
+   - Using 5-min VWAP for swing trading
+   - Match VWAP timeframe to your style
+
+4. **Overcomplicating**:
+   - Too many deviation bands
+   - Multiple anchored VWAPs
+   - Keep it simple: Price vs VWAP + volume
+
+## Specific Setup Examples
+
+### Bitcoin Scalp Setup
+**Context**: BTC trending up, above daily VWAP
+**Time**: London-New York overlap
+**Setup**:
+1. 4H VWAP held as support overnight
+2. Price pulls to 1H VWAP at Asian session low
+3. Volume increases on bounce
+4. Entry: $42,150 (1H VWAP touch)
+5. Stop: $41,800 (below Asian low)
+6. Target: $43,000 (1.5 SD deviation)
+
+### Ethereum Swing Setup
+**Context**: ETH distribution below VWAP
+**Time**: Weekly close analysis
+**Setup**:
+1. Failed to reclaim weekly VWAP for 3 weeks
+2. Volume declining on bounces
+3. Anchored VWAP from all-time high acting as resistance
+4. Entry: Failed retest at $2,800
+5. Stop: Above weekly VWAP at $2,950
+6. Target: Previous support at $2,400
+
+## Advanced Tips for 2024
+
+1. **Combine with Liquidity Pools**:
+   - VWAP deviations often target liquidity pools
+   - Plot liquidation levels with VWAP extremes
+   - Trade the liquidity grab reversal
+
+2. **AI Enhancement**:
+   - Use machine learning to optimize deviation parameters
+   - Backtest different SD settings per asset
+   - Adaptive VWAP based on volatility regimes
+
+3. **Institutional Flow**:
+   - Monitor Coinbase Premium Index with VWAP
+   - US institutions often execute at VWAP
+   - Follow their lead during key hours
+
+Remember: VWAP isn't a holy grail. It's a tool. Master it, combine it with other concepts (order flow, liquidity), and always manage your risk. The best traders use VWAP as **context**, not as a standalone signal.`;
+        }
+        
+        // Return generic lesson for other modules
+        return `# ${prompt.split('\n')[0].replace('You are an elite crypto trading instructor. Teach me', '')}
+
+## Comprehensive Guide
+
+*This is a simulated AI-generated lesson. In a real application, this would connect to an AI API like OpenAI or Anthropic.*
+
+### Key Concepts
+1. **Fundamental Principles** - Understanding the core mechanics
+2. **Advanced Applications** - Going beyond basic tutorials
+3. **Crypto-Specific Adaptations** - Adjusting for 24/7 markets
+4. **Risk Management** - Protecting your capital
+5. **Practical Setups** - Ready-to-use trading plans
+
+### Why This Matters
+Most traders fail because they only understand surface-level concepts. This module dives deep into the institutional techniques that separate profitable traders from the 90% who lose money.
+
+### Action Steps
+1. Study the concepts thoroughly
+2. Practice on demo accounts
+3. Start small when going live
+4. Keep detailed journals
+5. Continuously refine your approach
+
+### Next Steps
+Ask specific questions in the chat below, or explore the quick strategies in the right panel for practical applications.
+
+---
+*Lesson generated by CryptoMaster AI at ${new Date().toLocaleTimeString()}*`;
+    }
+
+    async function generateAIResponse(query) {
+        // Simulate AI processing time
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Return mock AI response based on query
+        const lowerQuery = query.toLowerCase();
+        
+        if (lowerQuery.includes('profit') && lowerQuery.includes('strategy')) {
+            return `# Profitable Trading Strategies
+
+Based on your query about profit strategies, here are the most effective approaches:
+
+## Top 3 High-Probability Strategies for 2024
+
+### 1. Liquidity-Grab Reversal
+**Win Rate**: 68-72%
+**Average R:R**: 1:3
+**Best Time**: London/NY overlap
+**Key Pair**: BTC/USD
+
+**Setup Rules**:
+1. Identify recent liquidity pool (cluster of stops)
+2. Wait for price to "grab" that liquidity
+3. Enter on reversal candle with volume
+4. Stop: Beyond liquidity grab extreme
+5. Target: Opposite liquidity pool
+
+### 2. VWAP Deviation Mean Reversion
+**Win Rate**: 65-70%
+**Average R:R**: 1:2.5
+**Best Time**: Any session extremes
+**Key Pair**: ETH/USD
+
+**Setup Rules**:
+1. Price extends 1.75+ SD from VWAP
+2. Volume declines on extension
+3. RSI divergence (optional but helpful)
+4. Enter on first reversal candle
+5. Target: Return to VWAP
+
+### 3. Order Flow Imbalance
+**Win Rate**: 70-75%
+**Average R:R**: 1:2
+**Best Time**: High volume periods
+**Key Pair**: Major forex pairs
+
+**Setup Rules**:
+1. Identify large bid/ask imbalance
+2. Wait for absorption pattern
+3. Enter with the imbalance
+4. Stop: Beyond imbalance zone
+5. Target: Next imbalance area
+
+## Risk Management for Profitability
+
+### Position Sizing Formula
+\`\`\`javascript
+// Kelly Criterion for crypto
+function kellyCriterion(winRate, avgWin, avgLoss) {
+    const winProbability = winRate / 100;
+    const lossProbability = 1 - winProbability;
+    const b = avgWin / Math.abs(avgLoss);
+    return (winProbability * b - lossProbability) / b;
+}
+
+// Example: 65% win rate, 2.5:1 reward:risk
+const optimalFraction = kellyCriterion(65, 2.5, 1);
+// Returns ~0.46 or 46% of capital per trade (too aggressive!)
+// Use 10-25% of Kelly for safety
+\`\`\`
+
+### Practical Position Sizing
+1. **Conservative**: 0.5-1% per trade
+2. **Moderate**: 1-2% per trade  
+3. **Aggressive**: 2-3% per trade (not recommended for prop firms)
+
+## Prop Firm Profit Targets
+
+### Weekly Goals
+- **Safe**: 2-3% per week
+- **Moderate**: 3-5% per week
+- **Aggressive**: 5-8% per week
+
+### Monthly Consistency
+- Aim for 10-15% monthly
+- Never force trades
+- Quality over quantity
+
+## Common Profit-Killing Mistakes
+
+1. **Overtrading** - More trades ≠ more profits
+2. **Revenge Trading** - Emotional decisions lose money
+3. **Poor Risk Management** - One bad trade can wipe weeks of gains
+4. **Chasing Losses** - Doubling down rarely works
+5. **Ignoring Trading Journal** - Not learning from mistakes
+
+## Recommended Next Steps
+
+1. **Pick ONE strategy** and master it
+2. **Backtest** for at least 100 trades
+3. **Demo trade** for 1-2 months
+4. **Start small** when going live
+5. **Scale up** only after consistent profits
+
+Remember: Consistency beats brilliance in trading. A 60% win rate with proper risk management makes millions. A 90% win rate with poor risk management goes bankrupt.
+
+*Need more specific advice? Ask about particular strategies or market conditions.*`;
+        } else if (lowerQuery.includes('beginner') || lowerQuery.includes('start')) {
+            return `# Getting Started in Crypto Trading
+
+Welcome! Here's your step-by-step guide:
+
+## Phase 1: Foundation (Weeks 1-4)
+
+### 1. Education First
+- Complete all modules in order
+- Focus on Risk Management first
+- Understand market mechanics
+
+### 2. Demo Trading
+- Practice 4-6 hours daily
+- No real money yet
+- Track all trades in journal
+
+### 3. Psychology Development
+- Learn emotional control
+- Develop trading discipline
+- Create pre-trade checklists
+
+## Phase 2: Development (Weeks 5-12)
+
+### 1. Specialize
+- Pick 1-2 trading styles:
+  - Day trading (scalping)
+  - Swing trading
+  - Position trading
+
+### 2. System Development
+- Create your trading plan
+- Define entry/exit rules
+- Establish risk parameters
+
+### 3. Small Live Account
+- Start with $100-500
+- Trade micro positions
+- Focus on process, not profits
+
+## Recommended Learning Path
+
+1. **Week 1-2**: Risk Management module
+2. **Week 3-4**: VWAP Mastery  
+3. **Week 5-6**: Order Flow Analysis
+4. **Week 7-8**: Liquidity Concepts
+5. **Week 9-10**: Wyckoff Method
+6. **Week 11-12**: Algo Detection
+
+## Essential Tools
+
+### Free Resources
+1. **Charts**: TradingView (free tier)
+2. **News**: CryptoPanic, CoinMarketCal
+3. **Analysis**: Glassnode, CryptoQuant (free data)
+4. **Community**: Trading subreddits, Discord groups
+
+### Paid Resources (Wait Until Profitable)
+1. **Premium TradingView**: $15-30/month
+2. **Coinalyze**: $30-50/month for order flow
+3. **Bookmap**: $50-100/month for heatmaps
+
+## Common Beginner Mistakes to Avoid
+
+1. **Trying to get rich quick** - This is a skill, takes 1-2 years
+2. **Following gurus** - Develop your own edge
+3. **Trading too large** - Start small, scale slowly
+4. **Ignoring risk management** - #1 reason for failure
+5. **Not keeping a journal** - Can't improve without tracking
+
+## First $100 Trading Plan
+
+### Capital Allocation
+- $100 starting capital
+- Max 2% risk per trade = $2
+- Position size based on stop loss
+
+### Example Trade
+- Buy BTC at $42,000
+- Stop loss at $41,500 ($500 risk)
+- Position size: $2 / $500 = 0.004 BTC
+- Cost: 0.004 × $42,000 = $168
+
+### Realistic Expectations
+- Month 1-3: Focus on not losing money
+- Month 4-6: Small consistent profits
+- Month 7-12: 5-10% monthly returns
+- Year 2+: 10-20%+ monthly returns possible
+
+## Next Immediate Steps
+
+1. **Today**: Study Risk Management module
+2. **This Week**: Open demo account on Bybit or Binance
+3. **This Month**: Paper trade every day, journal everything
+4. **Next Month**: Consider $100 live account if demo profitable
+
+Remember: Every successful trader was once a beginner. The difference is they didn't quit during the learning phase.
+
+*Ready for specific strategy questions? Ask away!*`;
+        } else {
+            return `# AI Trading Assistant Response
+
+Thank you for your question: **"${query}"**
+
+Based on my analysis as an elite trading AI, here are key insights:
+
+## Core Principles Applied
+
+1. **Market Context**: Current conditions favor mean reversion strategies over trend following
+2. **Risk Assessment**: Volatility suggests reduced position sizing by 20-30%
+3. **Opportunity Window**: Next 24-48 hours show promising setups in crypto majors
+
+## Actionable Advice
+
+### Immediate Steps
+1. **Analysis**: Check 4H and daily charts for confluence
+2. **Preparation**: Set alerts at key levels
+3. **Execution**: Wait for confirmation, don't pre-empt
+
+### Risk Management Adjustments
+- Reduce position size by 25% due to increased volatility
+- Widen stop losses to account for larger swings
+- Consider hedging with options if available
+
+## Related Concepts to Explore
+
+1. **VWAP Deviation Trading** - Current market conditions ideal
+2. **Liquidity Pool Analysis** - Where stops are likely clustered  
+3. **Order Flow Imbalances** - Institutional activity signals
+
+## Learning Resources
+- Review the "VWAP Mastery" module for current applicable strategies
+- Check "Quick Strategies" panel for ready-to-use setups
+- Practice identified concepts on demo first
+
+## Important Reminders
+
+⚠️ **Never risk more than 1-2% per trade**  
+📊 **Always wait for confirmation**  
+🧠 **Trade the plan, not emotions**  
+📈 **Process over profits always**
+
+## Follow-up Questions to Consider
+
+1. What specific asset are you analyzing?
+2. What's your current risk tolerance?  
+3. What timeframes do you prefer trading?
+4. Are you preparing for prop firm challenges?
+
+*For more detailed analysis, provide specific pairs, timeframes, or scenarios. I can generate custom strategies based on your exact situation.*
+
+---
+*Response generated at ${new Date().toLocaleTimeString()} based on institutional trading frameworks and current market analysis.*`;
+        }
+    }
+
+    // Initialize with some progress
+    setTimeout(() => {
+        updateProgress('tech', 10);
+        updateProgress('risk', 5);
+        updateProgress('prop', 8);
+        addAlert('Welcome to CryptoMaster AI! Select a module to begin.', 'info');
+    }, 1000);
+
+    // Auto-resize on load
+    chatInput.style.height = 'auto';
+    chatInput.style.height = chatInput.scrollHeight + 'px';
+
+    // Add some sample alerts
+    setTimeout(() => {
+        addAlert('BTC showing VWAP deviation setup on 4H chart', 'profit');
+        addAlert('Watch for NY session liquidity grab in 30min', 'info');
+    }, 2000);
+
+    setTimeout(() => {
+        addAlert('Risk management tip: Reduce size during high volatility', 'danger');
+    }, 4000);
+
+    // Initialize audio context on user interaction
+    document.body.addEventListener('click', function initAudio() {
+        if (audioContext.state === 'suspended') {
+            audioContext.resume();
+        }
+        document.body.removeEventListener('click', initAudio);
+    }, { once: true });
+
+    // Add keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl/Cmd + / to focus chat
+        if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+            e.preventDefault();
+            chatInput.focus();
+        }
+        
+        // Escape to close modal
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+        
+        // Ctrl/Cmd + M to toggle theme
+        if ((e.ctrlKey || e.metaKey) && e.key === 'm') {
+            e.preventDefault();
+            document.getElementById('themeToggle').click();
+        }
+    });
+
+    console.log('CryptoMaster AI initialized successfully!');
+    console.log('Shortcuts:');
+    console.log('- Ctrl+/ : Focus chat input');
+    console.log('- Ctrl+M : Toggle theme');
+    console.log('- Escape : Close modal');
+  </script>
+</body>
+</html>
