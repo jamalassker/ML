@@ -1,44 +1,61 @@
 import ccxt
+import ccxt.pro as ccxtpro
 import pandas as pd
 import pandas_ta as ta
 import numpy as np
+import requests
+import math
+import os
+import asyncio
 from datetime import datetime, time as dtime
-import time
 
 # ================= CONFIG =================
-SYMBOLS = ["BTC/USDT", "ETH/USDT", "SOL/USDT", "BNB/USDT", "XRP/USDT"]
+SYMBOLS = ["BTC/USDT", "ETH/USDT", "SOL/USDT"]
 TIMEFRAME = "1m"
-CANDLES = 1500
+CANDLES = 500
 
-EXCHANGE = ccxt.binance({"enableRateLimit": True})
+USE_TESTNET = False   # change to True later if needed
 
 INITIAL_BALANCE = 1000.0
-RISK_PER_TRADE = 0.01   # 1%
+RISK_PER_TRADE = 0.01
+MAX_OPEN_TRADES = 5
+MAX_TRADE_MINUTES = 15
 
-# Optimization grids
-RSI_BUY = [25, 30, 35]
-RSI_SELL = [65, 70, 75]
-SL_ATR_GRID = [1.0, 1.2, 1.5]
-TP_ATR_GRID = [1.5, 1.8, 2.2]
+AI_PROB_THRESHOLD = 0.62
+IMBALANCE_THRESHOLD = 0.15
 
-# Trading sessions (UTC)
 SESSIONS = [
-    (dtime(7, 0), dtime(11, 0)),   # London
-    (dtime(13, 0), dtime(17, 0))   # NY
+    (dtime(7, 0), dtime(11, 0)),
+    (dtime(13, 0), dtime(17, 0))
 ]
+
+# Telegram
+TG_TOKEN = os.getenv("TELEGRAM_TOKEN","8560134874:AAHF4efOAdsg2Y01eBHF-2DzEUNf9WAdniA")
+TG_CHAT = os.getenv("TELEGRAM_CHAT_ID","5665906172")
+
+# ================= TELEGRAM =================
+def tg(msg):
+    if not TG_TOKEN or not TG_CHAT:
+        return
+    requests.post(
+        f"https://api.telegram.org/bot{TG_TOKEN}/sendMessage",
+        json={"chat_id": TG_CHAT, "text": msg}
+    )
+
+# ================= EXCHANGE =================
+exchange = (
+    ccxtpro.binanceusdm({"enableRateLimit": True})
+    if not USE_TESTNET else
+    ccxtpro.binanceusdm({
+        "enableRateLimit": True,
+        "urls": {"api": {"public": "https://testnet.binancefuture.com"}}
+    })
+)
 
 # ================= UTIL =================
 def in_session():
     now = datetime.utcnow().time()
-    return any(start <= now <= end for start, end in SESSIONS)
-
-def fetch_ohlc(symbol):
-    ohlc = EXCHANGE.fetch_ohlcv(symbol, TIMEFRAME, limit=CANDLES)
-    df = pd.DataFrame(
-        ohlc, columns=["ts","open","high","low","close","volume"]
-    )
-    df["ts"] = pd.to_datetime(df["ts"], unit="ms")
-    return df
+    return any(s <= now <= e for s, e in SESSIONS)
 
 def indicators(df):
     df["ema20"] = ta.ema(df["close"], 20)
@@ -46,148 +63,95 @@ def indicators(df):
     df["ema200"] = ta.ema(df["close"], 200)
     df["rsi"] = ta.rsi(df["close"], 14)
     df["atr"] = ta.atr(df["high"], df["low"], df["close"], 14)
-
-    bb = ta.bbands(df["close"], 20, 2)
-    l = [c for c in bb.columns if c.startswith("BBL")][0]
-    u = [c for c in bb.columns if c.startswith("BBU")][0]
-
-    df["bb_low"] = bb[l]
-    df["bb_up"] = bb[u]
-
-    df["z"] = (
-        (df["close"] - df["close"].rolling(20).mean())
-        / df["close"].rolling(20).std()
-    )
+    df["z"] = (df["close"] - df["close"].rolling(20).mean()) / df["close"].rolling(20).std()
     return df.dropna()
 
-def regime(row):
-    if row["ema20"] > row["ema50"] > row["ema200"]:
+def regime(r):
+    if r["ema20"] > r["ema50"] > r["ema200"]:
         return "UP"
-    if row["ema20"] < row["ema50"] < row["ema200"]:
+    if r["ema20"] < r["ema50"] < r["ema200"]:
         return "DOWN"
     return "RANGE"
 
-# ================= BACKTEST =================
-def backtest(df, rsi_b, rsi_s, sl_atr, tp_atr):
-    balance = 1.0
-    wins = losses = 0
+# ================= ORDERBOOK =================
+async def orderbook_imbalance(symbol):
+    ob = await exchange.watch_order_book(symbol)
+    bid_vol = sum([b[1] for b in ob["bids"][:10]])
+    ask_vol = sum([a[1] for a in ob["asks"][:10]])
+    return (bid_vol - ask_vol) / (bid_vol + ask_vol)
 
-    for i in range(1, len(df)-20):
-        r = df.iloc[i]
-        reg = regime(r)
+# ================= AI PROBABILITY =================
+def ai_probability(r, bias):
+    base = (
+        1.5 * min(abs(r["z"]) / 3, 1) +
+        1.2 * abs(50 - r["rsi"]) / 50 +
+        1.0 * abs(r["ema20"] - r["ema200"]) / r["close"]
+    )
+    return 1 / (1 + math.exp(-(base + bias)))
 
-        if reg == "UP" and r["rsi"] < rsi_b and r["z"] < -1:
-            entry = r["close"]
-            sl = entry - r["atr"] * sl_atr
-            tp = entry + r["atr"] * tp_atr
-            for _, f in df.iloc[i+1:i+20].iterrows():
-                if f["low"] <= sl:
-                    balance -= 1
-                    losses += 1
-                    break
-                if f["high"] >= tp:
-                    balance += tp_atr / sl_atr
-                    wins += 1
-                    break
-
-        if reg == "DOWN" and r["rsi"] > rsi_s and r["z"] > 1:
-            entry = r["close"]
-            sl = entry + r["atr"] * sl_atr
-            tp = entry - r["atr"] * tp_atr
-            for _, f in df.iloc[i+1:i+20].iterrows():
-                if f["high"] >= sl:
-                    balance -= 1
-                    losses += 1
-                    break
-                if f["low"] <= tp:
-                    balance += tp_atr / sl_atr
-                    wins += 1
-                    break
-
-    trades = wins + losses
-    if trades == 0:
-        return None
-
-    return {
-        "equity": balance,
-        "winrate": wins / trades,
-        "trades": trades
-    }
-
-# ================= OPTIMIZER =================
-def optimize(symbol):
-    df = indicators(fetch_ohlc(symbol))
-    best = None
-
-    for rb in RSI_BUY:
-        for rs in RSI_SELL:
-            for sl in SL_ATR_GRID:
-                for tp in TP_ATR_GRID:
-                    res = backtest(df, rb, rs, sl, tp)
-                    if not res:
-                        continue
-                    if not best or res["equity"] > best["equity"]:
-                        best = {
-                            "symbol": symbol,
-                            "rsi_b": rb,
-                            "rsi_s": rs,
-                            "sl": sl,
-                            "tp": tp,
-                            **res
-                        }
-    return best
-
-# ================= LIVE PAPER =================
-def live_trade(config):
+# ================= MAIN LOOP =================
+async def run():
     balance = INITIAL_BALANCE
-    open_trade = None
+    open_trades = []
+    reward_bias = 0.0
 
-    print(f"\n▶ LIVE PAPER TRADING {config['symbol']}")
+    tg("🤖 AI 1m Scalper Started")
 
     while True:
         if not in_session():
-            time.sleep(30)
+            await asyncio.sleep(10)
             continue
 
-        df = indicators(fetch_ohlc(config["symbol"]))
-        r = df.iloc[-1]
+        for symbol in SYMBOLS:
+            candles = await exchange.watch_ohlcv(symbol, TIMEFRAME, limit=CANDLES)
+            df = pd.DataFrame(candles, columns=["ts","open","high","low","close","volume"])
+            r = indicators(df).iloc[-1]
 
-        if open_trade:
-            if open_trade["side"] == "BUY":
-                if r["low"] <= open_trade["sl"]:
-                    balance -= balance * RISK_PER_TRADE
-                    open_trade = None
-                elif r["high"] >= open_trade["tp"]:
-                    balance += balance * RISK_PER_TRADE * (config["tp"]/config["sl"])
-                    open_trade = None
-
-        else:
+            imbalance = await orderbook_imbalance(symbol)
+            prob = ai_probability(r, reward_bias)
             reg = regime(r)
-            if reg == "UP" and r["rsi"] < config["rsi_b"] and r["z"] < -1:
-                open_trade = {
-                    "side": "BUY",
-                    "sl": r["close"] - r["atr"] * config["sl"],
-                    "tp": r["close"] + r["atr"] * config["tp"]
-                }
 
-        print(f"{datetime.utcnow()} | Balance: {round(balance,2)}")
-        time.sleep(60)
+            # MANAGE TRADES
+            for t in open_trades[:]:
+                age = (datetime.utcnow() - t["time"]).seconds / 60
+                if age > MAX_TRADE_MINUTES:
+                    open_trades.remove(t)
+                    tg(f"⏱ Exit timeout {t['symbol']}")
+                    reward_bias -= 0.05
+                    continue
 
-# ================= MAIN =================
-if __name__ == "__main__":
-    print("🔬 Optimizing...")
-    configs = []
+                if r["low"] <= t["sl"]:
+                    balance -= balance * RISK_PER_TRADE
+                    open_trades.remove(t)
+                    reward_bias -= 0.1
+                    tg(f"❌ SL {t['symbol']} | Bal {round(balance,2)}")
 
-    for s in SYMBOLS:
-        best = optimize(s)
-        if best and best["equity"] > 1.02:
-            configs.append(best)
-            print("✔", best)
+                elif r["high"] >= t["tp"]:
+                    balance += balance * RISK_PER_TRADE * 2
+                    open_trades.remove(t)
+                    reward_bias += 0.1
+                    tg(f"✅ TP {t['symbol']} | Bal {round(balance,2)}")
 
-    if not configs:
-        print("No profitable symbols found")
-        exit()
+            # ENTRY
+            if len(open_trades) >= MAX_OPEN_TRADES:
+                continue
 
-    # Trade best symbol
-    configs.sort(key=lambda x: x["equity"], reverse=True)
-    live_trade(configs[0])
+            if (
+                reg == "UP"
+                and prob >= AI_PROB_THRESHOLD
+                and imbalance > IMBALANCE_THRESHOLD
+                and r["rsi"] < 30
+                and r["z"] < -1
+            ):
+                open_trades.append({
+                    "symbol": symbol,
+                    "sl": r["close"] - r["atr"] * 1.2,
+                    "tp": r["close"] + r["atr"] * 2.0,
+                    "time": datetime.utcnow()
+                })
+                tg(f"📈 BUY {symbol} | Prob {round(prob,2)} | Imb {round(imbalance,2)}")
+
+        await asyncio.sleep(1)
+
+# ================= START =================
+asyncio.run(run())
