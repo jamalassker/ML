@@ -1,99 +1,139 @@
-
+import ccxt
 import pandas as pd
 import pandas_ta as ta
-import requests
-import time
+import numpy as np
+from datetime import datetime, timedelta
 
-# --- CONFIGURATION ---
-COIN_ID = 'solana'   # CoinGecko coin ID
-VS_CURRENCY = 'usd'
+# ================= CONFIG =================
+SYMBOLS = [
+    "BTC/USDT",
+    "ETH/USDT",
+    "SOL/USDT",
+    "BNB/USDT",
+    "XRP/USDT"
+]
 
-TELEGRAM_TOKEN = '8560134874:AAHF4efOAdsg2Y01eBHF-2DzEUNf9WAdniA'
-CHAT_ID = '5665906172'
+TIMEFRAME = "1m"
+CANDLES = 1500
+EXCHANGE = ccxt.binance({"enableRateLimit": True})
 
+RISK_PER_TRADE = 0.01     # 1%
+SL_ATR = 1.2              # stop-loss = 1.2 ATR
+TP_ATR = 1.8              # take-profit = 1.8 ATR
 
-def send_telegram(message):
-    try:
-        url = (
-            f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
-            f"/sendMessage?chat_id={CHAT_ID}&text={message}"
-        )
-        requests.get(url, timeout=5)
-    except:
-        pass
-
-
-def fetch_coingecko_ohlc(coin_id):
-    """
-    Fetch OHLC data from CoinGecko
-    Format returned: [timestamp, open, high, low, close]
-    """
-    url = (
-        f"https://api.coingecko.com/api/v3/coins/{coin_id}"
-        f"/ohlc?vs_currency={VS_CURRENCY}&days=1"
+# ================= DATA =================
+def fetch_ohlc(symbol):
+    ohlc = EXCHANGE.fetch_ohlcv(symbol, timeframe=TIMEFRAME, limit=CANDLES)
+    df = pd.DataFrame(
+        ohlc,
+        columns=["ts","open","high","low","close","volume"]
     )
+    df["ts"] = pd.to_datetime(df["ts"], unit="ms")
+    return df
 
-    response = requests.get(url, timeout=10)
+# ================= FEATURES =================
+def compute_features(df):
+    df["ema20"] = ta.ema(df["close"], 20)
+    df["ema50"] = ta.ema(df["close"], 50)
+    df["ema200"] = ta.ema(df["close"], 200)
+    df["rsi"] = ta.rsi(df["close"], 14)
+    df["atr"] = ta.atr(df["high"], df["low"], df["close"], 14)
 
-    if response.status_code == 200:
-        df = pd.DataFrame(
-            response.json(),
-            columns=['ts', 'o', 'h', 'l', 'c']
-        )
-        return df
+    bb = ta.bbands(df["close"], length=20, std=2)
+    l = [c for c in bb.columns if c.startswith("BBL")][0]
+    u = [c for c in bb.columns if c.startswith("BBU")][0]
 
-    elif response.status_code == 429:
-        print("Rate limit hit! Sleeping...")
-        time.sleep(60)
+    df["bb_low"] = bb[l]
+    df["bb_up"] = bb[u]
 
-    return None
+    # Z-score (AI/statistical technique)
+    df["zscore"] = (df["close"] - df["close"].rolling(20).mean()) / df["close"].rolling(20).std()
 
+    return df.dropna()
 
-def analyze_strategy():
-    df = fetch_coingecko_ohlc(COIN_ID)
-    if df is None or df.empty:
-        return None
+# ================= AI REGIME FILTER =================
+def market_regime(row):
+    if row["ema20"] > row["ema50"] > row["ema200"]:
+        return "UP"
+    if row["ema20"] < row["ema50"] < row["ema200"]:
+        return "DOWN"
+    return "RANGE"
 
-    # --- INDICATORS ---
-    df['rsi'] = ta.rsi(df['c'], length=14)
+# ================= SIGNAL LOGIC =================
+def generate_signal(row):
+    regime = market_regime(row)
 
-    bbands = ta.bbands(df['c'], length=20, std=2)
+    # AI rule: mean reversion ONLY in micro-trend
+    if regime == "UP":
+        if row["rsi"] < 35 and row["zscore"] < -1:
+            return "BUY"
 
-    if bbands is None or bbands.empty:
-        return None
-
-    # 🔥 FIX: auto-detect BB column names (version-safe)
-    lower_col = [c for c in bbands.columns if c.startswith("BBL")][0]
-    upper_col = [c for c in bbands.columns if c.startswith("BBU")][0]
-
-    df['lower_band'] = bbands[lower_col]
-    df['upper_band'] = bbands[upper_col]
-
-    last = df.iloc[-1]
-
-    # --- STRATEGY LOGIC (UNCHANGED) ---
-    if last['c'] <= last['lower_band'] and last['rsi'] < 35:
-        return f"🟢 GECKO BUY: {COIN_ID.upper()} at ${last['c']} (Oversold)"
-
-    elif last['c'] >= last['upper_band'] or last['rsi'] > 65:
-        return f"🔴 GECKO EXIT: {COIN_ID.upper()} at ${last['c']} (Overbought)"
+    if regime == "DOWN":
+        if row["rsi"] > 65 and row["zscore"] > 1:
+            return "SELL"
 
     return None
 
+# ================= BACKTEST =================
+def backtest(df):
+    balance = 1.0
+    wins = losses = 0
 
-print("Bot shifted to CoinGecko. Starting...")
+    for i in range(1, len(df)):
+        row = df.iloc[i]
+        signal = generate_signal(row)
+        if not signal:
+            continue
 
-while True:
-    try:
-        signal = analyze_strategy()
+        atr = row["atr"]
+        entry = row["close"]
 
-        if signal:
-            print(signal)
-            send_telegram(signal)
+        if signal == "BUY":
+            sl = entry - atr * SL_ATR
+            tp = entry + atr * TP_ATR
 
-        # CoinGecko free tier ~60s refresh
-        time.sleep(60)
+            future = df.iloc[i+1:i+20]
+            for _, f in future.iterrows():
+                if f["low"] <= sl:
+                    balance -= RISK_PER_TRADE
+                    losses += 1
+                    break
+                if f["high"] >= tp:
+                    balance += RISK_PER_TRADE * (TP_ATR / SL_ATR)
+                    wins += 1
+                    break
 
-    except Exception as e:
-        print(f"Error: {e}")
-        time.sleep(30)
+        if signal == "SELL":
+            sl = entry + atr * SL_ATR
+            tp = entry - atr * TP_ATR
+
+            future = df.iloc[i+1:i+20]
+            for _, f in future.iterrows():
+                if f["high"] >= sl:
+                    balance -= RISK_PER_TRADE
+                    losses += 1
+                    break
+                if f["low"] <= tp:
+                    balance += RISK_PER_TRADE * (TP_ATR / SL_ATR)
+                    wins += 1
+                    break
+
+    return {
+        "trades": wins + losses,
+        "wins": wins,
+        "losses": losses,
+        "winrate": round(wins / max(1, wins + losses) * 100, 2),
+        "equity": round(balance, 3)
+    }
+
+# ================= RUN =================
+if __name__ == "__main__":
+    print("AI 1m Scalper | Backtest + Multi-Coin\n")
+
+    for symbol in SYMBOLS:
+        print(f"Testing {symbol}")
+        df = fetch_ohlc(symbol)
+        df = compute_features(df)
+        stats = backtest(df)
+        print(stats)
+        print("-" * 40)
