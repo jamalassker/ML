@@ -7,6 +7,7 @@ import requests
 import asyncio
 import math
 import os
+import joblib
 from datetime import datetime, time as dtime
 
 # ================= CONFIG =================
@@ -35,6 +36,13 @@ SESSIONS = [
 TG_TOKEN = os.getenv("TELEGRAM_TOKEN","8560134874:AAHF4efOAdsg2Y01eBHF-2DzEUNf9WAdniA")
 TG_CHAT = os.getenv("TELEGRAM_CHAT_ID","5665906172")
 
+
+# ML Models (pretrained)
+ML_FILTER_MODEL_PATH = "ml_filter_model.pkl"      # Logistic/XGBoost trained offline
+LSTM_MODEL_PATH = "lstm_predictor.pkl"           # Pretrained LSTM model
+
+ml_filter_model = joblib.load(ML_FILTER_MODEL_PATH)
+lstm_model = joblib.load(LSTM_MODEL_PATH)
 
 # ================= TELEGRAM =================
 def tg(msg):
@@ -75,7 +83,7 @@ async def orderbook_imbalance(symbol):
     ask = sum(a[1] for a in ob["asks"][:10])
     return (bid - ask) / (bid + ask)
 
-# ================= AI PROB =================
+# ================= AI PROBABILITY =================
 def ai_probability(r, bias):
     base = (
         1.5 * min(abs(r["z"]) / 3, 1) +
@@ -83,6 +91,18 @@ def ai_probability(r, bias):
         abs(r["ema20"] - r["ema200"]) / r["close"]
     )
     return 1 / (1 + math.exp(-(base + bias)))
+
+# ================= ML FILTER =================
+def ml_filter(df):
+    features = df[["open","high","low","close","rsi","atr","z"]].values[-20:].flatten()
+    prob = ml_filter_model.predict_proba([features])[0][1]
+    return prob
+
+# ================= LSTM PREDICTOR =================
+def lstm_predict(df):
+    seq = df[["open","high","low","close","rsi","atr","z"]].values[-30:]
+    prob = lstm_model.predict(seq.reshape(1,30,7))[0][0]
+    return prob
 
 # ================= OPTIMIZER =================
 def optimize(df):
@@ -106,9 +126,9 @@ async def run():
     bias = 0.0
     params = {}
 
-    tg("🤖 AI 1m Scalper v1.5 Started")
+    tg("🤖 AI 1m Scalper v2 Started")
 
-    # OPTIMIZE PER COIN
+    # Optimize per coin
     for s in SYMBOLS:
         ohlc = await exchange.fetch_ohlcv(s, TIMEFRAME, limit=500)
         df = indicators(pd.DataFrame(ohlc, columns=["ts","open","high","low","close","volume"]))
@@ -132,10 +152,14 @@ async def run():
                 return
 
             imbalance = await orderbook_imbalance(s)
-            prob = ai_probability(r, bias)
+            prob_ai = ai_probability(r, bias)
+            prob_ml = ml_filter(df)
+            prob_lstm = lstm_predict(df)
+            combined_prob = (prob_ai + prob_ml + prob_lstm) / 3
+
             p = params[s]
 
-            # MANAGE TRADES
+            # Manage trades
             for t in open_trades[:]:
                 age = (datetime.utcnow() - t["time"]).seconds / 60
                 if r["low"] <= t["sl"]:
@@ -162,7 +186,7 @@ async def run():
             if (
                 len(open_trades) < MAX_OPEN_TRADES
                 and regime(r) == "UP"
-                and prob > AI_PROB_THRESHOLD
+                and combined_prob > AI_PROB_THRESHOLD
                 and imbalance > IMBALANCE_THRESHOLD
                 and r["rsi"] < p["rsi"]
                 and r["z"] < -1
@@ -175,7 +199,7 @@ async def run():
                     "tp": entry + r["atr"] * p["tp"],
                     "time": datetime.utcnow()
                 })
-                tg(f"📈 BUY {s} | Prob {round(prob,2)}")
+                tg(f"📈 BUY {s} | CombinedProb {round(combined_prob,2)}")
 
         await asyncio.sleep(1)
 
